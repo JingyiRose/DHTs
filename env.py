@@ -1,6 +1,7 @@
 import time
 import random
 import threading
+from helper import *
 
 class Package:
     # whatever is communicated between partites -- two types 1) local = client to local machine, 2) p2p = between nodes/threads
@@ -26,39 +27,16 @@ class Package:
         if self.proximity == "p2p":
             channel.process(self)
 
-    
-# class ClientRequest(Package):
-#     # can only be lookup request
-
-#     def __init__(self, origin, local_node, query, content, proximity = "local", id = None):
-#         # origin is client, destination is local node instnace
-#         self.type = "ClientRequest"
-#         self.proximity = "local"
-#         self.destination = local_node
-#         self.query = query
-#         self.origin = origin
-#         self.content = content
-
-#         if id == None:
-#             self.id = random.randrange(100000000000, 999999999999)
-#         else:
-#             self.id = id
-    
-#     def send(self):
-#         self.send_local()
-
 class ClientRequest(Package):
     # client request
     # can only be lookup request
 
-    def __init__(self, origin, local_node, query, content, proximity = "local", id = None):
+    def __init__(self, client, local_node, content, proximity = "local", id = None):
         # origin is client, destination is node instance
         self.type = "ClientRequest"
         self.proximity = "local"
+        self.client = client
         self.destination = local_node
-        self.query = query
-        # print("destination {}".format(destination))
-        self.origin = origin
         self.content = content
 
         if id == None:
@@ -81,7 +59,7 @@ class ClientReply(Package):
         self.content = content
 
         if id == None:
-            self.id = random.randrange(100000000000, 999999999999)
+            self.id = get_random_string(12)
         else:
             self.id = id
     
@@ -95,10 +73,10 @@ class Request(Package):
     # p2p request
     # There could be other various types requests depending on the content
     
-    def __init__(self, sender_node, receiver_node, content, proximity, id = None):
+    def __init__(self, sender_node, receiver_node, content, proximity = "p2p", id = None):
         self.type = "REQ"
         if id == None:
-            self.id = random.randrange(100000000000, 999999999999)
+            self.id = get_random_string(12)
         else:
             self.id = id
         self.sender = sender_node # id
@@ -128,7 +106,7 @@ class Request(Package):
 class Reply(Package):
     # reply from a peer
 
-    def __init__(self, sender_node, receiver_node, req_id, content, proximity, id = None):
+    def __init__(self, sender_node, receiver_node, req_id, content, proximity = "p2p", id = None):
         self.type = "REP"
         if id == None:
             self.id = random.randrange(100000000000, 999999999999)

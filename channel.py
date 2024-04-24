@@ -22,5 +22,5 @@ class Channel:
         self.receiver.in_queue.append(request)
 
     def activate(self):
-        self.sender.out_channels[self.receiver.key] = self
-        self.receiver.in_channels[self.sender.key] = self
+        self.sender.out_channels[self.receiver.node_id] = self
+        self.receiver.in_channels[self.sender.node_id] = self
