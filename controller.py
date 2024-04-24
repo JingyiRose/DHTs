@@ -3,7 +3,7 @@ from client import *
 from command import *
 
 class Controller:
-    # evaliation framework
+    # evaluation framework
     # read operations from a file, and then send 1) makekey/makenode to dht and/or 2) lookup request to client
 
     def __init__(self, logfile, dht):

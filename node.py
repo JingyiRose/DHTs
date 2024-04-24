@@ -3,9 +3,10 @@ from env import *
 
 class Node:
 
-    def __init__(self, key, val, dht):
-        self.key = key
-        self.val = val
+    def __init__(self, node_id, ip_address, port, dht):
+        self.node_id = node_id
+        self.ip_address = ip_address
+        self.port = port
         self.in_channels = {}
         self.out_channels = {}
         self.alive = True
@@ -15,6 +16,8 @@ class Node:
         self.is_done = False
         self.dht = dht
         self.pkg_pointers = {}
+        # cached key value pairs
+        self.cache = {}
 
         def thread_function(node):
             while not node.is_done:
@@ -42,14 +45,14 @@ class Node:
         
         if pkg.type == "ClientRequest":
             destination_key = pkg.query # pkg.query is a placeholder in chord this is finger table
-            req = Request(self.key, destination_key, content = pkg.content, proximity = "p2p", id = None)
+            req = Request(self.node_id, destination_key, content = pkg.content, proximity = "p2p", id = None)
             self.pkg_pointers[req.id] = pkg.id
             self.ongoing_requests[pkg.id] = req
             self.send(req)
             self.req_to_filfill[pkg.id] = pkg
 
         if pkg.type == "REQ":
-            rep = Reply(self.key, pkg.sender, pkg.id, content = "value {}".format(self.val), proximity = "p2p")
+            rep = Reply(self.node_id, pkg.sender, pkg.id, content = "value {}".format(self.val), proximity = "p2p")
             self.send(rep)
 
         if pkg.type == "REP":
@@ -75,4 +78,4 @@ class Node:
 
     def open_channel(self, destination):
         # destionation is id
-        self.dht.MakeChannel(self.key, destination)
+        self.dht.MakeChannel(self.node_id, destination)
