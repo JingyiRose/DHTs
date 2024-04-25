@@ -22,3 +22,6 @@ class Clique(DHT):
         self.nodes[node_id] = node
         for other_node_id in self.nodes:
             self.MakeChannel(node_id, other_node_id)
+    
+    def cheat(self):
+        return
