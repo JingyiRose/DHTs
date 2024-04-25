@@ -26,27 +26,6 @@ class Package:
         if self.proximity == "p2p":
             channel.process(self)
 
-    
-# class ClientRequest(Package):
-#     # can only be lookup request
-
-#     def __init__(self, origin, local_node, query, content, proximity = "local", id = None):
-#         # origin is client, destination is local node instnace
-#         self.type = "ClientRequest"
-#         self.proximity = "local"
-#         self.destination = local_node
-#         self.query = query
-#         self.origin = origin
-#         self.content = content
-
-#         if id == None:
-#             self.id = random.randrange(100000000000, 999999999999)
-#         else:
-#             self.id = id
-    
-#     def send(self):
-#         self.send_local()
-
 class ClientRequest(Package):
     # client request
     # can only be lookup request
