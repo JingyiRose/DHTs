@@ -20,6 +20,8 @@ class KademliaNode(Node):
         # Cache <key, value> pairs
         self.evict_policy = evict_policy
         self.k_buckets = {}
+        for i in range(KEY_RANGE):
+            self.k_buckets[i] = KBucket(node_id)
         self.join(dht, contact)
 
 
@@ -40,6 +42,34 @@ class KademliaNode(Node):
         (IP address, UDP port, Node ID) and store it as a contact object
         """
         return Contact(node.ip_address, node.port, node.key)
+    
+    def add(self, kbucket, contact):
+        #TODO: implement the dynamic splitting bucket protocol
+        """if the contact already exists, move the contact to the end of the list.
+        Otherwise, if the k-bucket is not full, add the contact to tail.
+        If the k-bucket is full, ping the contact at the head (least recently seen)
+        and if fails, insert new node to tail; if succeeds, move pinged contact to tail.
+        Update last_seen time.
+
+        Args:
+            contact (Contact): the contact to be added to the k-bucket
+        """
+        if contact in kbucket.contacts:
+            kbucket.remove(contact.node_id)
+            kbucket.add(contact)
+            return
+        if len(kbucket) < K:
+            kbucket.add(contact)
+            return
+        # ping the contact at the head
+        lrs_node_id, lrs_contact = self.contact.items()[0]
+        kbucket.remove(lrs_node_id)
+        if ping_request(self.node_id, lrs_contact):
+            kbucket.add(lrs_contact)
+            return
+        kbucket.add(contact)
+        return
+
     
 
     def find_k_bucket_index(self, key:str) -> int:
