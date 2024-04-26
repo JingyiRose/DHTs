@@ -1,0 +1,30 @@
+nodejoin id=CSJ3XG35, ip=7GDG3VV72KIF, port=99656
+nodejoin id=B61X91ZL, ip=UDRXLE9HT5X1, port=50282
+nodejoin id=DGHYJGK6, ip=C40FWIFJTG81, port=30343
+nodejoin id=5IY6RLYE, ip=2CJAGHIBVH85, port=53366
+nodejoin id=DDLDKSRE, ip=Q3VYFCFNZMZQ, port=30780
+insert key=10089888, val=1133398042776415
+insert key=19543276, val=7747215555167543
+insert key=23013199, val=3725463948024223
+insert key=63661026, val=2298347682418521
+insert key=15548289, val=6484129860697787
+insert key=23330147, val=8107714137186722
+insert key=41752530, val=5014501852053516
+insert key=37249747, val=7001313933060114
+insert key=74878966, val=0198344692257966
+insert key=89139290, val=5759376708270921
+look-up localnode=CSJ3XG35, key=89139290
+look-up localnode=CSJ3XG35, key=23330147
+look-up localnode=CSJ3XG35, key=41752530
+look-up localnode=CSJ3XG35, key=74878966
+look-up localnode=DDLDKSRE, key=10089888
+look-up localnode=DDLDKSRE, key=10089888
+look-up localnode=5IY6RLYE, key=37249747
+look-up localnode=DDLDKSRE, key=19543276
+look-up localnode=B61X91ZL, key=23330147
+look-up localnode=DGHYJGK6, key=15548289
+look-up localnode=DDLDKSRE, key=23330147
+look-up localnode=B61X91ZL, key=10089888
+look-up localnode=B61X91ZL, key=37249747
+look-up localnode=B61X91ZL, key=23330147
+look-up localnode=CSJ3XG35, key=63661026

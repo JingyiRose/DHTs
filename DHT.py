@@ -13,37 +13,26 @@ class DHT:
     def process(self, command):
         # process command from controller
 
-        if command.type == "DHTMakeKey":
+        if command.type == "DHTInsertKey":
             key, val = command.key, command.val
-            self.MakeKey(key, val)
+            self.InsertKey(key, val)
+            print("key made: {}, {}".format(key,val))
         
         if command.type == "DHTMakeNode":
-            key, val = command.key, command.val
-            self.MakeNode(key)
-
-        if command.type == "ClientLookUp":
-            lookup_id =command.lookup_id 
-            req_node_id = command.req_node_id
-            dest_key = command.dest_key
-            self.NodeLookUp(lookup_id, req_node_id, dest_key)
+            id, ip, port = command.id, command.ip, command.port
+            self.MakeNode(id, ip, port)
     
         if command.type == "Finish":
             return
         
 
-    def DHTMakeKey(self, key, val):
-        # create a key and its val (not necessary a node)
-        return
+    # def DHTMakeKey(self, key, val):
+    #     # create a key and its val (not necessary a node)
+    #     return
     
-    def DHTMakeNode(self, key, val):
-        node = Node(key, val, self)
-        self.nodes[key] = node
-
-    # def NodeJoin(self, node):
-    #     # when a new node joins, it has to decide which existing nodes to open connection with
-    #     channels_with = [] # code this
-    #     for n1 in channels_with:
-    #         self.MakeChannel(node, n1, Gaussian(300,20))
+    # def DHTMakeNode(self, key, val):
+    #     node = Node(key, val, self)
+    #     self.nodes[key] = node
 
 
     def MakeChannel(self, from_node_id, to_node_id, latency_dist = Gaussian(250, 10)):
@@ -56,9 +45,9 @@ class DHT:
         c1.activate()
         c2.activate()
 
-    def clean_up(self):
-        for node in self.nodes.values():
-            node.shut_down()
+    # def clean_up(self):
+    #     for node in self.nodes.values():
+    #         node.shut_down()
     
 
     # def NodeLookUp(self, lookup_id, req_node_id, dest_key):
