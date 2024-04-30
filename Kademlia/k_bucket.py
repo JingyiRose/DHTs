@@ -2,22 +2,31 @@
 from typing import List
 from utils import *
 import time
-from Kademlia.kademlia_protocol import ping_request
 
 
 class KBucket:
     """The bucket that stores k contacts in the subtree not containing the node ID.
     """
 
-    def __init__(self, node_id):
-        # self.node_id = node_id # the node it belongs to
-        # maps node_ids to contact objects, sorted by time last seen
+    def __init__(self, node_id: str, index: int):
+        # contact: maps node_ids to contact objects, sorted by time last seen
         # more recently seen contacts are at the end of the list
         self.contacts = {}
         self.last_seen = {}
         self.node_id = node_id
+        # index i represents nodes of distance [2^i, 2^{i-1}) from the current node
+        self.index = index
 
     
+    def get_prefix(self):
+        """Get the prefix that all nodes in this k-bucket share. 
+        This function is mostly for debugging purposes.
+        """
+        # padded with 0 to a total length KEY_RANGE
+        bin_string = f'{int(self.node_id, KEY_BASE):0{KEY_RANGE}b}'
+        return bin_string[:-self.index-1] + flip(bin_string[-self.index-1])
+
+
     def sort_by_proximity(self, target_key: str, num: int) -> dict:
         """Sort the list of node_ids in the k-bucket by distance to target,
         from closest to farthest. Truncate the returned list at some number.

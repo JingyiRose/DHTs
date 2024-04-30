@@ -1,9 +1,13 @@
-from Kademlia.contact import Contact
+from contact import Contact
 from env import *
 from Kademlia.kademlia_node import *
+import pickle as pkl
 
 
-class RequestType(Enum):
+# TODO: fix request and reply class: node type -> contact type
+
+class MessageType(Enum):
+    # request message types
     PING = "ping"
     STORE = "store"
     FIND_NODE = "find_node"
@@ -12,53 +16,95 @@ class RequestType(Enum):
 
 class Message:
     
-    def __init__(self, request_type: RequestType, info: str):
-        self.request_type = request_type
+    def __init__(self, type: MessageType, info: dict):
+        self.type = type
         # dictionary of key value pairs
         self.info = info
         return
-    
 
+def encode(msg: Message):
+    return pkl.dump(msg).hex()
+
+def decode(msg: str):
+    return pkl.load(bytes.fromhex(msg))
 
 
 class KademliaProtocol:
 
-    def __init__(self, node):
-        # node instance running this protocol
-        self.node = node
-        
-
-    def ping_rpc(self, source_id, contact: Contact):
+    @staticmethod
+    def ping_rpc(node, dest: Contact):
         """send a ping request to the destination node wait for response
         """
-        request = Request(source_id, contact.ip_address, 
-                          Message(RequestType.PING, {}), proximity="p2p")
-        self.node.send_p2p(request)
-        return 
+        request = Request(node.convert_to_contact(), dest, 
+                          encode(Message(MessageType.PING, {})), proximity="p2p")
+        node.send_p2p(request)
+        # TODO: wait for response? asyn and find response in message queue?
+        # return 1 if get a valid response, 0 if not
+        return request.id
     
-    def store_rpc(self, source_id, contact: Contact, key, value):
+    @staticmethod
+    def store_rpc(node, dest: Contact, key, value):
         """send a store request to the destination node
         """
         info = dict(key=key, value=value)
-        request = Request(source_id, contact.ip_address, 
-                          Message(RequestType.STORE, info), proximity="p2p")
-        self.node.send_p2p(request)
-        return
+        request = Request(node.convert_to_contact(), dest,
+                          encode(Message(MessageType.STORE, info)), proximity="p2p")
+        node.send_p2p(request)
+        # don't need to wait for response
+        return request.id
     
-    def find_node_rpc(self, source_id, contact: Contact, key):
+    @staticmethod
+    def find_node_rpc(node, dest: Contact, key):
         """send a find_node request to the destination node
         """
         info = dict(key=key)
-        request = Request(source_id, contact.ip_address, 
-                          Message(RequestType.FIND_NODE, info), proximity="p2p")
-        self.node.send_p2p(request)
-        return
+        request = Request(node.convert_to_contact(), dest, 
+                          encode(Message(MessageType.FIND_NODE, info)), proximity="p2p")
+        node.send_p2p(request)
+        return request.id
     
-    def find_value_rpc(self, source_id, contact: Contact, key):
+    @staticmethod
+    def find_value_rpc(node, dest: Contact, key):
         """send a find_value request to the destination node
         """
         info = dict(key=key)
-        request = Request(source_id, contact.ip_address, 
-                          Message(RequestType.FIND_VALUE, info), proximity="p2p")
-        self.node.send_p2p(request)
+        request = Request(node.convert_to_contact(), dest, 
+                          encode(Message(MessageType.FIND_VALUE, info)), proximity="p2p")
+        node.send_p2p(request)
+        return request.id
+
+
+
+    @staticmethod
+    def ping_reply(node, pkg: Package):
+        """reply to a ping request
+        """
+        reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+                      encode(Message(MessageType.PING, {})), proximity="p2p")
+
+        node.send_p2p(reply)
+        return
+    
+    # Store request does not need a reply
+    
+    @staticmethod
+    def find_node_reply(node, pkg: Package):
+        """send a find_node request to the destination node
+        """
+        node.add_contact(pkg.sender)
+        info = dict(result = node.find_node_handler(pkg.content["key"]))
+        reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+                      encode(Message(MessageType.FIND_NODE, info)), proximity="p2p")
+        node.send_p2p(reply)
+        return
+    
+    @staticmethod
+    def find_value_reply(node, pkg: Package):
+        """send a find_value request to the destination node
+        """
+        node.add_contact(pkg.sender)
+        info = dict(result = node.find_value_handler(pkg.content["key"]))
+        reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+                      encode(Message(MessageType.FIND_VALUE, info)), proximity="p2p")
+        node.send_p2p(reply)
         return

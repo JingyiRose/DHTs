@@ -1,12 +1,16 @@
 
+from Kademlia.kademlia_protocol import *
 from node import *
 from evict_policy import *
 from utils import *
 from config import *
 import random
-from k_bucket import *
+from Kademlia.k_bucket import *
 from contact import *
 import threading
+import pickle as pkl
+import math
+
 
 
 class KademliaNode(Node):
@@ -16,17 +20,119 @@ class KademliaNode(Node):
     def __init__(self, node_id, ip_address, port, dht, contact,
                  evict_policy=EvictPolicy.EXP_EVICT_POLICY):
 
+        # self.in_channels = {} # key = id of node that self has a channel with, val  = channel instance
+        # self.out_channels = {} # key = id of node that self has a channel with, val  = channel instance
+        # self.dht = dht
+        # self.in_queue = [] # FIFO queue of RPCs going into this node
+        # self.is_done = False
         super().__init__(node_id, ip_address, port, dht)
-        # Cache <key, value> pairs
+        self.cache = {} # Cache <key, value> pairs
         self.evict_policy = evict_policy
         self.k_buckets = {}
         for i in range(KEY_RANGE):
-            self.k_buckets[i] = KBucket(node_id)
+            self.k_buckets[i] = KBucket(node_id, i)
         self.join(dht, contact)
+        self.protocol = KademliaProtocol()
+        # keep record of the unused replies we got so far 
+        self.replies = {}  # req.id to reply dict
 
-
-    #TODO Implement the eviction logic
     
+    def process(self, pkg):
+        """Process the incoming package. Send replies to requests, 
+        store replies that it gets from other nodes.
+
+        Args:
+            pkg (Package): ClientRequest/Request/Reply
+        """
+
+        # Client Requests
+        if pkg.type == "GET":
+            if pkg.key in self.cache:
+                rep = ClientReply(self, pkg.client, 
+                            content = "Value is {}".format(self.cache[pkg.key]), 
+                            proximity="local",  id = None)
+                rep.send()
+                print("key found immediately")
+                print("client request fulfilled")
+            else:
+                self.lookup_keyval(pkg.key)
+            return
+
+        elif pkg.type == "PUT":
+            self.store_pair_on_k_nodes(pkg.key, pkg.val)
+            return
+        
+        message = pkl.load(bytes.fromhex(pkg.content))
+        # Node Requests
+        if pkg.type == "REQ":
+            if message.type == MessageType.FIND_NODE:
+                self.protocol.find_node_reply(self, pkg)
+            
+            elif message.type == MessageType.FIND_VALUE:
+                self.protocol.find_value_reply(self, pkg)
+            
+            elif message.type == MessageType.PING:
+                self.protocol.ping_reply(self, pkg)
+        # Node Replies
+        elif pkg.type == "REP":
+            self. replies[pkg.id] = pkg
+        return
+
+        
+
+    # ------------ Helper functions for handling Node Requests ------------
+    def find_node_handler(self, node_id: str)-> List[Contact]:
+        """returns the contact information of k closest nodes in the current 
+        node's routing table to the node with the specified node_id
+
+        Args:
+            node_id
+        
+        Returns: a sorted dictionary of K contacts {node_id : contact} closest to the key that the current
+        node has contact of. If the current node does not have contact of K nodes
+        then return all nodes it knows of. 
+        """
+
+        return self.find_closed_contacts(node_id, K)
+
+
+    def find_value_handler(self, key: str):
+        """Similar to find_node, except if the node has received a store RPC
+        for the key, it just returns the stored value.
+        """
+        
+        if key in self.cache:
+            return self.cache[key]
+        return self.find_node_handler(key)
+
+
+    def store_handler(self, key, val):
+        self.cache[key] = val
+    
+
+    # ------------ Helper functions for handling Client Requests ------------
+    def store_pair_on_k_nodes(self, key, val):
+        """locate the k closest nodes to the key and sends them a store RPC
+        """
+        k_nodes = self.lookup_k_nodes(key) # dict
+        for _, contact in k_nodes.items():
+            self.store_rpc(self.convert_node_to_contact(), contact, key, val)
+
+    def lookup_keyval(self, key):
+        """lookup the value of the key in the DHT
+        """
+        # recursive step uses find_value instead of find_node RPCs??
+
+        # halts immediately when any node returns the value
+
+        # store the <key, value> pair at the closest node it observed to the key
+        # that did not return the value
+        # closest_node.store(key, val)
+        # TODO
+        return
+
+
+    # --------------- Core Node Functionalities ---------------
     def join(self, dht, contact):
         # TODO
         # fill k-buckets, and insert itself into other nodes' k-buckets
@@ -36,24 +142,109 @@ class KademliaNode(Node):
         # which populates its own k-buckets and inserts itself into other nodes' k-buckets
         return
     
-    @staticmethod
-    def convert_node_to_contact(node):
+
+    def lookup_k_nodes(self, key):
+        """locate the k closest nodes to some given key in the DHT
+        """
+        # use dictionary to avoid duplicated node_ids
+        k_closest_contacts = {} # sorted by proximity to key
+        queried_contacts = {} # node IDs that have already been queried
+        # pick P nodes from its closest non-empty k-bucket and if that bucket
+        # has fewer than P entries, take the P closest nodes it knows of
+        p_contacts = self.find_closed_contacts(key, P)
+        distance = xor_base10(self.node_id, key)
+
+        while True:
+            # simulate the async calls
+            req_ids = []
+            for _, contact in p_contacts.items():
+                req_id = self.protocol.find_node_rpc(self, contact, key)
+                req_ids.append(req_id)
+            time.sleep(TIMEOUT)
+            # stop collecting replies when at least half of the nodes have responded
+            counter = 0
+            while counter < math.ceil(P/2):
+                for req_id in req_ids:
+                    if req_id in self.replies:
+                        counter += 1
+                        k_contacts = decode(self.replies[req_id].content).info['result']
+                        k_closest_contacts.update(k_contacts)
+                        queried_contacts.update(contact)
+                        req_ids.remove(req_id)
+                        del self.replies[req_id]
+            # of the k nodes the initiator has heard of closest to the target, it picks
+            # P that it has not yet queried and resends find_node RPC to them. 
+            # note that the initiator can ignore nodes that don't respond quick enough.
+            assert len(k_closest_contacts) != 0
+            k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
+            p_contacts = dict(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items())[:P])
+            new_distance = xor_base10(k_closest_contacts.items()[0][0], key)
+            if new_distance == distance:
+                break
+            distance = new_distance
+            
+            
+        # if a round of find_node fails to return a node closer to the target,
+        # the initiator resends the find_node to all of the k closest nodes it has
+        # not queried. lookup terminates when initiator has queried and gotten 
+        # responses from the k closest nodes it has seen.
+        k_contacts = filter(lambda x: x[0] not in queried_contacts, k_closest_contacts)[:K]
+
+        req_ids = []
+        for _, contact in k_contacts.items():
+            req_id = self.protocol.find_node_rpc(self, contact, key)
+            req_ids.append(req_id)
+
+        time.sleep(TIMEOUT)
+        counter = 0
+        # need to collect all replies
+        while counter < len(k_contacts):
+            for req_id in req_ids:
+                if req_id in self.replies:
+                    counter += 1
+                    k_contacts = decode(self.replies[req_id].content).info['result']
+                    k_closest_contacts.update(k_contacts)
+                    queried_contacts.update(contact)
+                    req_ids.remove(req_id)
+                    del self.replies[req_id]
+        
+
+        k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
+        
+        return k_closest_contacts[:K]
+    
+
+    def refresh_buckets(self):
+        """pick a random ID in the bucket's range and perform a
+        node search for that ID
+        """
+        for i in range(KEY_RANGE):
+            k_bucket = self.k_buckets[i]
+            self.lookup_k_nodes(random.choice(k_bucket).node_id)
+
+    
+
+        
+    
+    # --------------- Other Helper functions  ---------------
+    def convert_to_contact(self):
         """Get contact information of a node i.e.
         (IP address, UDP port, Node ID) and store it as a contact object
         """
-        return Contact(node.ip_address, node.port, node.key)
+        return Contact(self.ip_address, self.port, self.key)
     
-    def add(self, kbucket, contact):
-        #TODO: implement the dynamic splitting bucket protocol
-        """if the contact already exists, move the contact to the end of the list.
+    def add_contact(self, contact: Contact):
+        # Note: this is implementing the static routing table.
+        """Add a contact to the appropriate k-bucket.
+        If the contact already exists, move the contact to the end of the list.
         Otherwise, if the k-bucket is not full, add the contact to tail.
         If the k-bucket is full, ping the contact at the head (least recently seen)
         and if fails, insert new node to tail; if succeeds, move pinged contact to tail.
         Update last_seen time.
-
-        Args:
-            contact (Contact): the contact to be added to the k-bucket
         """
+        index = self.find_k_bucket_index(contact.node_id)
+        kbucket = self.k_buckets[index]
+
         if contact in kbucket.contacts:
             kbucket.remove(contact.node_id)
             kbucket.add(contact)
@@ -64,16 +255,16 @@ class KademliaNode(Node):
         # ping the contact at the head
         lrs_node_id, lrs_contact = self.contact.items()[0]
         kbucket.remove(lrs_node_id)
-        if ping_request(self.node_id, lrs_contact):
+        req_id = self.protocol.ping_rpc(self, self.node_id, lrs_contact)
+        time.sleep(TIMEOUT)
+        if req_id in self.replies:
             kbucket.add(lrs_contact)
-            return
-        kbucket.add(contact)
-        return
-
+            del self.replies[req_id]
+        else:
+            kbucket.add(contact)
     
-
     def find_k_bucket_index(self, key:str) -> int:
-        """each k-bucket corresponds to they keys with xor distance [2^i, 2^{i-1})
+        """each k-bucket corresponds to the nodes with xor distance [2^i, 2^{i-1})
         from the current node where the index i ranges from [0,KEY_RANGE-1].
         We find the range represented by the index i that they key should fall into
         
@@ -96,8 +287,8 @@ class KademliaNode(Node):
         Args:
             key (str)
         
-        Returns: a sorted list of k nodes closest to the key that the current
-        node has contact of. If the current node does not have contact of k nodes
+        Returns: a sorted dictionary of num contacts {node_id : contact} closest to the key that the current
+        node has contact of. If the current node does not have contact of num nodes
         then return all nodes it knows of. 
         """
         # a sorted dictionary (order is preserved after appending data in python 3.7)
@@ -120,137 +311,4 @@ class KademliaNode(Node):
             num_node_needed -= len(sorted_dict)
 
         return closest_contact
-
-        
-        
     
-
-    def find_node_handler(self, node_id: str):
-        """returns the contact information of k closest nodes to the node
-        with the specified node_id
-
-        Args:
-            node_id
-        
-        Returns: a list of k tuples <IP address, UDP port, Node ID>
-                It can return < k items if it has fewer than k nodes in all of its
-                K-buckets combined.
-        """
-
-        k_nodes = self.lookup_k_nodes(node_id)
-        k_nodes_info = list(map(Node.get_contact_info, k_nodes))
-        return k_nodes_info
-
-
-    def find_value_handler(self, key: str) -> str:
-        """Similar to find_node, except if the node has received a store RPC
-        for the key, it just returns the stored value.
-        """
-        
-        if key in self.cache:
-            return self.cache[key]
-        return self.find_node(key)
-
-
-    def find_pair(self, key):
-        k_nodes = self.lookup_k_nodes(key)
-
-        # recursive step uses find_value instead of find_node RPCs??
-
-        # halts immediately when any node returns the value
-
-        # store the <key, value> pair at the closest node it observed to the key
-        # that did not return the value
-        # closest_node.store(key, val)
-
-        return
-
-
-
-    def ping_handler():
-        """PINGs can be piggy-backed on RPC replies to provide
-        assurance of the sender's network address.
-        """
-        return
-
-    def store_handler(self, key, val):
-        self.cache[key] = val
-        return
-
-    def store_pair_on_k_nodes(self, key, val):
-        """locate the k closest nodes to the key and sends them a store RPC
-        """
-        k_nodes = self.lookup_k_nodes(key)
-        for node in k_nodes:
-            self.store_request(self.convert_node_to_contact(node),key, val)
-        return
-
-    def republish(key, val):
-        """re-publish to key (key, value) alive every 24 hours, Otherwise the pair
-        expire 24 hours after publication, to limit stale information."""
-        return
-
-
-    def find_node_request(self, contact, key):
-        """send a find_node RPC to a contact
-        """
-
-        return
-
-    def lookup_k_nodes(self, key):
-        """locate the k closest nodes to some given key.
-        """
-        # use dictionary to avoid duplicated node_ids
-        k_closest_contacts = {} # sorted by proximity to key
-        queried_contacts = {} # node IDs that have already been queried
-        # pick P nodes from its closest non-empty k-bucket and if that bucket
-        # has fewer than P entries, take the P closest nodes it knows of
-        p_contacts = self.find_closed_contacts(key, P)
-        distance = xor_base10(self.node_id, key)
-
-        while True:
-            for _, contact in p_contacts.items():
-                # TODO: async calls
-                # sends parallel, asynchronous find_node RPCs to the P ndoes it has chosen.
-                threading.Thread(target=self.find_node_request, args=(contact, key)).start()
-                k_contacts = self.find_node_request(contact, key)
-                k_closest_contacts.update(k_contacts)
-                queried_contacts.update(contact)
-            # of the k nodes the initiator has heard of closest to the target, it picks
-            # P that it has not yet queried and resends find_node RPC to them. 
-            # note that the initiator can ignore nodes that don't respond quick enough.
-            k_closest_contacts = dict(sorted(k_closest_contacts.items(), lambda x: xor_base10(x[0], key)))
-            p_contacts = dict(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items())[:P])
-            new_distance = xor_base10(k_closest_contacts.items()[0][0], key)
-            if new_distance == distance:
-                break
-            distance = new_distance
-            
-            
-        # if a round of find_node fails to return a node closer to the target,
-        # the initiator resends the find_node to all of the k closest nodes it has
-        # not queried. lookup terminates when initiator has queried and gotten 
-        # responses from the k closest nodes it has seen.
-        k_contacts = filter(lambda x: x[0] not in queried_contacts, k_closest_contacts)[:K]
-        for _, contact in k_contacts.items():
-            # TODO: async calls
-            threading.Thread(target=self.find_node_request, args=(contact, key)).start()
-            k_closest_contacts.update(self.find_node_request(contact, key))
-            # TODO: do something to wait for all threads to join
-        k_closest_contacts = dict(sorted(k_closest_contacts.items(), lambda x: xor_base10(x[0], key)))
-        
-        return k_closest_contacts[:K]
-
-
-    def refresh_buckets(self):
-        """pick a random ID in the bucket's range and perform a
-        node search for that ID
-        """
-        for i in range(KEY_RANGE):
-            k_bucket = self.k_buckets[i]
-            self.lookup_k_nodes(random.choice(k_bucket).node_id)
-
-
-
-        
-        

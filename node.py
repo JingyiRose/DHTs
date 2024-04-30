@@ -11,7 +11,6 @@ class Node:
         self.in_channels = {} # key = id of node that self has a channel with, val  = channel instance
         self.out_channels = {} # key = id of node that self has a channel with, val  = channel instance
         self.dht = dht
-        self.cache = {}  # cached key value pairs
         self.in_queue = [] # FIFO queue of RPCs going into this node
         self.is_done = False
 

@@ -20,6 +20,10 @@ class Client:
         req = ClientRequest(self, self.local_node,
                             content = "Look-up key={}".format(self.query_key), id = self.lookup_id)
         req.send()
+    
+    def insert_data(self, key, value):
+        req = PutRequest(self, self.local_node, content = "Insert key={} value={}".format(key, value), id = self.lookup_id)
+        req.send()
 
 
     def wake(self):
