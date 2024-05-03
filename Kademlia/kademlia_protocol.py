@@ -22,10 +22,10 @@ class Message:
         self.info = info
         return
 
-def encode(msg: Message):
+def encode(msg: Message) -> str:
     return pkl.dump(msg).hex()
 
-def decode(msg: str):
+def decode(msg: str) -> Message:
     return pkl.load(bytes.fromhex(msg))
 
 
@@ -77,7 +77,7 @@ class KademliaProtocol:
 
     @staticmethod
     def ping_reply(node, pkg: Package):
-        """reply to a ping request
+        """a node replies to a ping request
         """
         reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
                       encode(Message(MessageType.PING, {})), proximity="p2p")
@@ -89,10 +89,9 @@ class KademliaProtocol:
     
     @staticmethod
     def find_node_reply(node, pkg: Package):
-        """send a find_node request to the destination node
+        """a node replies to a find_node request
         """
-        node.add_contact(pkg.sender)
-        info = dict(result = node.find_node_handler(pkg.content["key"]))
+        info = dict(result = node.find_node_handler(pkg.sender, pkg.content["key"]))
         reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
                       encode(Message(MessageType.FIND_NODE, info)), proximity="p2p")
         node.send_p2p(reply)
@@ -100,10 +99,10 @@ class KademliaProtocol:
     
     @staticmethod
     def find_value_reply(node, pkg: Package):
-        """send a find_value request to the destination node
+        """a node replies to a find_value request
         """
-        node.add_contact(pkg.sender)
-        info = dict(result = node.find_value_handler(pkg.content["key"]))
+        success, result = node.find_value_handler(pkg.sender, pkg.content["key"])
+        info = dict(success = success, result = result)
         reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
                       encode(Message(MessageType.FIND_VALUE, info)), proximity="p2p")
         node.send_p2p(reply)
