@@ -210,7 +210,6 @@ class KademliaNode(Node):
         for index in range(1, KEY_RANGE):
             # this populates its k-buckets and inserts itself into other nodes' k-buckets
             self.refresh_bucket(index)
-        
 
         # need to store any key-value pairs to which it is one of the k-closest
         # we do this when the node is finding a key value pair for the first time
