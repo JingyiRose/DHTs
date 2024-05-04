@@ -1,0 +1,30 @@
+nodejoin id=EW0HU96D, ip=OUQ155YR9B8J, port=97926, contact_node=None
+nodejoin id=CRJ3C86O, ip=AMFTEDXD1UE4, port=90481, contact_node=EW0HU96D
+nodejoin id=SXZBPIG1, ip=M1T4KQ2VGG05, port=59956, contact_node=CRJ3C86O
+nodejoin id=YUWRZD08, ip=3FEOP0V7ALXX, port=88830, contact_node=SXZBPIG1
+nodejoin id=NEQ88UI5, ip=GHLQ1FQX7I3H, port=30517, contact_node=EW0HU96D
+insert key=68417307, val=0274711736200804
+insert key=92462493, val=2619225305570439
+insert key=23945301, val=6403979072477178
+insert key=60111863, val=0366109220802145
+insert key=84437745, val=8039870714827607
+insert key=04325310, val=6788554383341496
+insert key=15196303, val=9308808530305642
+insert key=58412581, val=1569772838343338
+insert key=31117133, val=9280844149255358
+insert key=57755348, val=5146842667395345
+look-up localnode=SXZBPIG1, key=84437745
+look-up localnode=EW0HU96D, key=68417307
+look-up localnode=YUWRZD08, key=60111863
+look-up localnode=SXZBPIG1, key=84437745
+look-up localnode=CRJ3C86O, key=60111863
+look-up localnode=SXZBPIG1, key=68417307
+look-up localnode=NEQ88UI5, key=23945301
+look-up localnode=CRJ3C86O, key=84437745
+look-up localnode=YUWRZD08, key=68417307
+look-up localnode=CRJ3C86O, key=04325310
+look-up localnode=SXZBPIG1, key=15196303
+look-up localnode=EW0HU96D, key=60111863
+look-up localnode=CRJ3C86O, key=23945301
+look-up localnode=SXZBPIG1, key=58412581
+look-up localnode=SXZBPIG1, key=31117133

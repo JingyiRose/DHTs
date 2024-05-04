@@ -1,9 +1,9 @@
 
 from client import *
-from framework_v2.command_v2 import *
+from Framework.command_v2 import *
 import time
 
-class ControllerColdHot:
+class ControllerV2:
     # controller = evaluation framework. It feeds a sequence of commands into DHTs. In ControllerColdHot, there are two phases
     # Phase 1:
     #   - initializing "cold" nodes and keys (i.e. hard-wiring them to dht) and "stabilize" the dht. After this phase, dht should be in stable states
@@ -18,49 +18,56 @@ class ControllerColdHot:
     #       3) client look-ups
     #           -> client initiates a look-up request to its local node; then local node should fetch (key,value) and send them back to the client
 
-    def __init__(self, cold_file, hot_file, dht, rep_filename = None, is_cheating = False, makenode_sleep=0):
+    def __init__(self, start_file, normal_ops_file, dht, rep_filename = None, makenode_sleep=0):
         # turning on "cheat" (by setting it to true) lets dht calls self.cheat() after all keys/nodes are inserted 
 
-        self.cold_cmds = parse_commands(cold_file)
-        self.hot_cmds = parse_commands(hot_file)
+        self.start_cmds = parse_commands(start_file)
+        self.normal_ops_cmds = parse_commands(normal_ops_file)
         self.clients = []
         self.dht = dht
-        # self.length_log = len(self.cmds)
         if rep_filename and os.path.exists(rep_filename):
             os.remove(rep_filename)
         self.rep_filename = rep_filename
 
-        self.is_cheating = is_cheating
         self.lookup_started = False
         self.makenode_sleep = makenode_sleep
         
     
     def execute(self):
-        for cmd in self.cold_cmds:
-            if cmd.type == "MakeNode":
-                id, ip, port, contact_node = cmd.id, cmd.ip, cmd.port, cmd.contact_node
-                self.dht.MakeNode(id, ip, port, contact_node)
 
-            if cmd.type == "InsertKey":
-                key, val = cmd.key, cmd.val
-                self.dht.InsertKey(key, val)
+        # the first phase is to initialize dht and stabilize it
+        for cmd in self.start_cmds:
+            if cmd.type == "MakeNode":
+                id, ip, port = cmd.id, cmd.ip, cmd.port
+                self.dht.MakeNode(id, ip, port, make_contact = False)
+
+            if cmd.type == "ClientInsertKey":
+                local_node_id, key, val = cmd.local_node_id, cmd.key, cmd.val
+                if local_node_id == "None":
+                    self.dht.InsertKey(key, val)
 
         # this function stabliizes cold nodes and keys
         self.dht.stabilize_cold_files()
 
-        time.sleep(2)
+        # time.sleep(2)
         
 
         # this is where the actual simulation/evaluation begins
-        for cmd in self.hot_cmds:
-            if cmd.type == "InsertKey":
-                key, val = cmd.key, cmd.val
-                self.dht.InsertKey(key, val)
-                time.sleep(0.5)
+        for cmd in self.normal_ops_cmds:
+            if cmd.type == "ClientInsertKey":
+                local_node_id, key, val = cmd.local_node_id, cmd.key, cmd.val
+
+                if local_node_id == "None":
+                    self.dht.InsertKey(key, val)
+                else:
+                    local_node = self.dht.nodes[cmd.local_node_id]
+                    client = Client(local_node, keyval=(key,val))
+                    client.insert_data()
+
 
             if cmd.type == "MakeNode":
-                id, ip, port, contact_node = cmd.id, cmd.ip, cmd.port, cmd.contact_node
-                self.dht.MakeNode(id, ip, port, contact_node)
+                id, ip, port = cmd.id, cmd.ip, cmd.port
+                self.dht.MakeNode(id, ip, port, make_contact = True)
                 time.sleep(self.makenode_sleep)
 
             if cmd.type == "ClientLookUp":

@@ -68,12 +68,12 @@ def maketest_hotcold(num_cold_nodes, num_cold_keys, cmd_length,  p_nodejoin, p_i
 
 
 if __name__ == '__main__':
-    num_cold_nodes = 5
-    num_cold_keys = 10
-    cmd_length = 30
-    p_nodejoin = 0.1
-    p_insertkey = 0.55
-    p_lookups = 0.35
+    num_cold_nodes = 10
+    num_cold_keys = 0
+    cmd_length = 5
+    p_nodejoin = 1
+    p_insertkey = 0
+    p_lookups = 0
     cold_fname = "cold_n{}_k{}.txt".format(num_cold_nodes, num_cold_keys)
     hot_fname =  "hot{}.txt".format(cmd_length)
     keyvalfile = "empty.txt"

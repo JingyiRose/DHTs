@@ -1,0 +1,6 @@
+nodejoin id=4UPO2LTD, ip=XAE2EY2IXVG0, port=38354, contact_node=None
+nodejoin id=WPP4VLE8, ip=TFOTTXZLQGG8, port=00202, contact_node=None
+nodejoin id=XS3HX284, ip=9M3W0WJ4P90Y, port=34432, contact_node=None
+nodejoin id=2U9DBUM8, ip=5N2EF7ENFF7T, port=43558, contact_node=None
+nodejoin id=9QYBB3ZE, ip=R65NIW80MCND, port=65389, contact_node=None
+nodejoin id=AY0DK46P, ip=GBBLLP0KYAIH, port=29262, contact_node=None

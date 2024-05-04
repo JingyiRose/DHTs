@@ -9,7 +9,6 @@ class Client:
         self.local_node = local_node
         self.query_key = query_key # key that the client wants to look up in dht
         self.keyval = keyval # tuple (key, value) that the client wants to insert to dht
-        self.lookup_id = get_random_digits(8)
         self.req_complete = False
         self.in_queue = []
         self.client_id = get_random_string(8)
@@ -25,6 +24,7 @@ class Client:
     def insert_data(self):
         req = PutRequest(self, self.local_node, 
                          content = "Insert key={} value={}".format(*self.keyval))
+        print("Client of node {} sent a PutRequest {}".format(self.local_node, "Insert key={} value={}".format(*self.keyval)))
         req.send()
 
 

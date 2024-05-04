@@ -50,14 +50,14 @@ class ClientRequest(Package):
 
 class GetRequest(ClientRequest):
     def __init__(self, client, local_node, content, id = None):
-        super.__init__(client, local_node, content, id)
+        super().__init__(client, local_node, content, id)
         self.type = "GET"
         # content is "Look-up key=1234567890" see Client class
         self.key = self.content.split("=")[-1]
 
 class PutRequest(ClientRequest):
     def __init__(self, client, local_node, content, id = None):
-        super.__init__(client, local_node, content, id)
+        super().__init__(client, local_node, content, id)
         self.type = "PUT"
         # content is "Insert key=123456 value=1234567890" see Client class
         content_split = content.split(" ")

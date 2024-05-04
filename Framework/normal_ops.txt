@@ -1,0 +1,5 @@
+look-up localnode=1011, key=1110
+look-up localnode=1100011, key=11101
+insert localnode=11010000, key=1111101, val=1001111001111011
+insert localnode=1010, key=11111000, val=101101101011000
+insert localnode=11010000, key=1110000, val=1101000110101110

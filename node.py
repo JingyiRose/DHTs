@@ -34,6 +34,7 @@ class Node:
 
     def send(self, pkg):
         # RPCs from peer to peer by this node sending a package (request, reply, etc) into a channel
+        # receiver_id = pkg.receiver
         receiver_id = pkg.receiver.node_id
         if receiver_id not in self.out_channels:
             self.open_channel(receiver_id)
