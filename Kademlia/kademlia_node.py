@@ -1,17 +1,12 @@
-
 from Kademlia.kademlia_protocol import *
 from env import *
 from node import *
-from evict_policy import *
-from utils import *
+from Kademlia.utils import *
 from config import *
 from DHT import *
 import random
 from Kademlia.k_bucket import *
 from contact import *
-import threading
-import pickle as pkl
-import math
 
 
 
@@ -19,8 +14,7 @@ class KademliaNode(Node):
     """Implement Nodes in Kademlia Protocol
     """
 
-    def __init__(self, node_id, ip_address, port, dht, contact,
-                 evict_policy=EvictPolicy.EXP_EVICT_POLICY):
+    def __init__(self, node_id, ip_address, port, dht):
 
         # self.in_channels = {} # key = id of node that self has a channel with, val  = channel instance
         # self.out_channels = {} # key = id of node that self has a channel with, val  = channel instance
@@ -29,12 +23,9 @@ class KademliaNode(Node):
         # self.is_done = False
         super().__init__(node_id, ip_address, port, dht)
         self.cache = {} # Cache <key, value> pairs
-        self.evict_policy = evict_policy
         self.k_buckets = {}
         for i in range(KEY_RANGE):
             self.k_buckets[i] = KBucket(node_id, i)
-        self.join(dht, contact)
-        self.protocol = KademliaProtocol()
         # keep record of the unused replies we got so far 
         self.replies = {}  # req.id to reply dict
 
@@ -64,17 +55,17 @@ class KademliaNode(Node):
             self.store_pair_on_k_nodes(pkg.key, pkg.val)
             return
         
-        message = pkl.load(bytes.fromhex(pkg.content))
+        message = decode(pkg.content)
         # Node Requests
         if pkg.type == "REQ":
             if message.type == MessageType.FIND_NODE:
-                self.protocol.find_node_reply(self, pkg)
+                find_node_reply(self, pkg)
             
             elif message.type == MessageType.FIND_VALUE:
-                self.protocol.find_value_reply(self, pkg)
+                find_value_reply(self, pkg)
             
             elif message.type == MessageType.PING:
-                self.protocol.ping_reply(self, pkg)
+                ping_reply(self, pkg)
         # Node Replies
         elif pkg.type == "REP":
             self. replies[pkg.id] = pkg
@@ -148,7 +139,7 @@ class KademliaNode(Node):
             # simulate the async calls
             req_ids = []
             for _, contact in p_contacts.items():
-                req_id = self.protocol.find_value_rpc(self, contact, key)
+                req_id = find_value_rpc(self, contact, key)
                 req_ids.append(req_id)
             # stop collecting replies when timeout is reached
             time.sleep(TIMEOUT)
@@ -181,24 +172,25 @@ class KademliaNode(Node):
         # that did not return the value
 
         # For a fair comparison with Chord, we might not want to do this optimization
-        # k_closest_contacts = sort_contact_dict(k_closest_contacts, key)[:K]
+        # k_closest_contacts = get_first(sort_contact_dict(k_closest_contacts, key),K)
         # for id, contact in k_closest_contacts.items():
         #     if id != node_id:
         #         self.store_rpc(self.convert_to_contact(), contact, key, value)
         #         break
 
         # store the <key, value> pair if the node is closer than any other node
-        if xor_base10(self.node_id, key) < xor_base10(k_closest_contacts.items()[0][0], key):
+        if xor_base10(self.node_id, key) < xor_base10(list(k_closest_contacts.items())[0][0], key):
             self.cache[key] = value
         
         return value
 
 
     # --------------- Core Node Functionalities ---------------
-    def join(self, dht:DHT, contact):
-        # add node to dht
-        dht.nodes[self.node_id] = self
+    def join(self, contact: Contact):
 
+        # the first node joining the DHT, no contact
+        if contact == None:
+            return
         # insert contact to appropriate k-bucket
         self.add_contact(contact)
         # perform node lookup for its own node id
@@ -221,18 +213,18 @@ class KademliaNode(Node):
         """locate the k closest nodes to some given key in the DHT
         """
         # use dictionary to avoid duplicated node_ids
-        k_closest_contacts = {} # sorted by proximity to key
+        k_closest_contacts = self.find_closed_contacts(key, K) # sorted by proximity to key
         queried_contacts = {} # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
-        p_contacts = self.find_closed_contacts(key, P)
+        p_contacts = get_first(k_closest_contacts, P)
         distance = xor_base10(self.node_id, key)
 
         while True:
             # simulate the async calls
             req_ids = []
             for _, contact in p_contacts.items():
-                req_id = self.protocol.find_node_rpc(self, contact, key)
+                req_id = find_node_rpc(self, contact, key)
                 req_ids.append(req_id)
             # wait to hear replies
             time.sleep(TIMEOUT)
@@ -248,8 +240,8 @@ class KademliaNode(Node):
             # note that the initiator can ignore nodes that don't respond quick enough.
             assert len(k_closest_contacts) != 0
             k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
-            p_contacts = dict(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items())[:P])
-            new_distance = xor_base10(k_closest_contacts.items()[0][0], key)
+            p_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:P])
+            new_distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
             if new_distance == distance:
                 break
             distance = new_distance
@@ -259,11 +251,11 @@ class KademliaNode(Node):
         # the initiator resends the find_node to all of the k closest nodes it has
         # not queried. lookup terminates when initiator has queried and gotten 
         # responses from the k closest nodes it has seen.
-        k_contacts = filter(lambda x: x[0] not in queried_contacts, k_closest_contacts)[:K]
+        k_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:K])
 
         req_ids = []
         for _, contact in k_contacts.items():
-            req_id = self.protocol.find_node_rpc(self, contact, key)
+            req_id = find_node_rpc(self, contact, key)
             req_ids.append(req_id)
 
         time.sleep(TIMEOUT)
@@ -280,7 +272,7 @@ class KademliaNode(Node):
                     del self.replies[req_id]
         
 
-        k_closest_contacts = sort_contact_dict(k_closest_contacts, key)[:K]
+        k_closest_contacts = get_first(sort_contact_dict(k_closest_contacts, key),K)
         
         return k_closest_contacts
     
@@ -303,7 +295,7 @@ class KademliaNode(Node):
         """Get contact information of a node i.e.
         (IP address, UDP port, Node ID) and store it as a contact object
         """
-        return Contact(self.ip_address, self.port, self.key)
+        return Contact(self.ip_address, self.port, self.node_id)
     
     def add_contact(self, contact: Contact):
         # Note: this is implementing the static routing table.
@@ -325,9 +317,9 @@ class KademliaNode(Node):
             kbucket.add(contact)
             return
         # ping the contact at the head
-        lrs_node_id, lrs_contact = self.contact.items()[0]
+        lrs_node_id, lrs_contact = list(self.contact.items())[0]
         kbucket.remove(lrs_node_id)
-        req_id = self.protocol.ping_rpc(self, self.node_id, lrs_contact)
+        req_id = ping_rpc(self, lrs_contact)
         time.sleep(TIMEOUT)
         if req_id in self.replies:
             kbucket.add(lrs_contact)

@@ -24,9 +24,11 @@ class Controller:
     
     def execute(self):
         for cmd in self.cmds:
-            if cmd.type == "InsertKey":
-                key, val = cmd.key, cmd.val
-                self.dht.InsertKey(key, val)
+            # use ClientInsertKey instead since this request is made by some client locally
+            # if cmd.type == "InsertKey":
+            #     key, val = cmd.key, cmd.val
+            #     self.dht.InsertKey(key, val)
+            print(f'Executing command: {cmd}')
 
             if cmd.type == "MakeNode":
                 id, ip, port = cmd.id, cmd.ip, cmd.port
@@ -37,12 +39,22 @@ class Controller:
                     if not self.lookup_started:
                         self.dht.cheat()
                         self.lookup_started = True
-            
+
+                # simulate the association of client to a local node
                 local_node = self.dht.nodes[cmd.local_node_id]
                 query_key = cmd.destination_key
-                client = Client(local_node, query_key, write_to = self.rep_filename)
+                client = Client(local_node, query_key = query_key, write_to = self.rep_filename)
                 client.make_query()
                 self.clients.append(client)
+
+            if cmd.type == "ClientInsertKey":
+                # simulate the association of client to a local node
+                local_node = self.dht.nodes[cmd.local_node_id]
+                key, val = cmd.key, cmd.val
+                client = Client(local_node, keyval = (key, val), write_to = self.rep_filename)
+                client.insert_data()
+                self.clients.append(client)
+
 
         # if cmd.type == "Finish":
         #     self.dht.clean_up()

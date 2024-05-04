@@ -5,12 +5,16 @@ from config import *
 import re
 
 
+def get_first(item_dict:dict, num: int) -> dict:
+    """Get the first num elements in the dictionary
+    """
+    return dict(list(item_dict.items())[:num])
 
 # Helper functions
 def sort_contact_dict(contact_dict, key):
     """Sort the dictionary of contacts by proximity to the key
     """
-    return dict(sorted(contact_dict.items(), lambda x: xor_base10(x[0], key)))
+    return dict(sorted(contact_dict.items(), key = lambda x: xor_base10(x[0], key)))
 
 
 # Bit operations

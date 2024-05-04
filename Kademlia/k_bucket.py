@@ -1,6 +1,6 @@
 
 from typing import List
-from utils import *
+from Kademlia.utils import *
 import time
 
 
@@ -9,9 +9,8 @@ class KBucket:
     """
 
     def __init__(self, node_id: str, index: int):
-        # contact: maps node_ids to contact objects, sorted by time last seen
         # more recently seen contacts are at the end of the list
-        self.contacts = {}
+        self.contacts = {} # map node_id -> Contact
         self.last_seen = {}
         self.node_id = node_id
         # index i represents nodes of distance [2^i, 2^{i-1}) from the current node
@@ -38,8 +37,7 @@ class KBucket:
 
         Return: a sorted dict of length num
         """
-        return sorted(self.contacts, 
-                      key=lambda x: xor_base10(x.node_id, target_key))[:num]
+        return dict(list(sort_contact_dict(self.contacts, target_key).items())[:num])
 
     
     def add(self, contact):

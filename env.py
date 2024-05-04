@@ -25,19 +25,14 @@ class Package:
 
     def send_local(self, local_node: Node):
         # goes into queue of dest
-        if self.proximity == "local":
-            local_node.in_queue.append(self)
+        local_node.in_queue.append(self)
         
-    def send_p2p(self, channel):
-        # origin posesses the package and will be shipped through a proper channel to destination
-        if self.proximity == "p2p":
-            channel.process(self)
 
 class ClientRequest(Package):
     # client request
     # can only be lookup request
 
-    def __init__(self, client, local_node: Node, content, proximity = "local", id = None):
+    def __init__(self, client, local_node: Node, content, id = None):
         # origin is client, destination is node instance
         self.type = "ClientRequest"
         self.proximity = "local"
@@ -54,15 +49,15 @@ class ClientRequest(Package):
         self.send_local(self.local_node)
 
 class GetRequest(ClientRequest):
-    def __init__(self, client, local_node, content, proximity = "local", id = None):
-        super.__init__(client, local_node, content, proximity, id)
+    def __init__(self, client, local_node, content, id = None):
+        super.__init__(client, local_node, content, id)
         self.type = "GET"
         # content is "Look-up key=1234567890" see Client class
         self.key = self.content.split("=")[-1]
 
 class PutRequest(ClientRequest):
-    def __init__(self, client, local_node, content, proximity = "local", id = None):
-        super.__init__(client, local_node, content, proximity, id)
+    def __init__(self, client, local_node, content, id = None):
+        super.__init__(client, local_node, content, id)
         self.type = "PUT"
         # content is "Insert key=123456 value=1234567890" see Client class
         content_split = content.split(" ")
