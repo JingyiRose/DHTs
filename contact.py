@@ -8,4 +8,7 @@ class Contact:
         self.port = port
         self.node_id = node_id
 
+    def __str__(self) -> str:
+        return "<Contact: ip = {}, port = {}, node_id = {}>".format(self.ip_address, self.port, self.node_id)
+
 

@@ -129,7 +129,7 @@ class KademliaNode(Node):
 
         # use dictionary to avoid duplicated node_ids
         k_closest_contacts = {} # sorted by proximity to key
-        queried_contacts = {} # node IDs that have already been queried
+        queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
         p_contacts = self.find_closed_contacts(key, P)
@@ -145,6 +145,7 @@ class KademliaNode(Node):
             time.sleep(TIMEOUT)
             for req_id in req_ids:
                 if req_id in self.replies:
+                    receiver_contact = self.replies[req_id].receiver
                     reply_info = decode(self.replies[req_id].content).info
                     success, result = reply_info['success'], reply_info['result']
                     # halts immediately when any node returns the value
@@ -157,7 +158,7 @@ class KademliaNode(Node):
                     else:
                         k_contacts = result
                         k_closest_contacts.update(k_contacts)
-                        queried_contacts.update(contact)
+                        queried_contacts.append(receiver_contact.node_id)
                         req_ids.remove(req_id)
                         del self.replies[req_id]
             # of the k nodes the initiator has heard of closest to the target, it picks
@@ -214,7 +215,7 @@ class KademliaNode(Node):
         """
         # use dictionary to avoid duplicated node_ids
         k_closest_contacts = self.find_closed_contacts(key, K) # sorted by proximity to key
-        queried_contacts = {} # node IDs that have already been queried
+        queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
         p_contacts = get_first(k_closest_contacts, P)
@@ -230,9 +231,10 @@ class KademliaNode(Node):
             time.sleep(TIMEOUT)
             for req_id in req_ids:
                 if req_id in self.replies:
+                    receiver_contact = self.replies[req_id].receiver
                     k_contacts = decode(self.replies[req_id].content).info['result']
                     k_closest_contacts.update(k_contacts)
-                    queried_contacts.update(contact)
+                    queried_contacts.append(receiver_contact.node_id)
                     req_ids.remove(req_id)
                     del self.replies[req_id]
             # of the k nodes the initiator has heard of closest to the target, it picks
@@ -267,7 +269,6 @@ class KademliaNode(Node):
                     counter += 1
                     k_contacts = decode(self.replies[req_id].content).info['result']
                     k_closest_contacts.update(k_contacts)
-                    queried_contacts.update(contact)
                     req_ids.remove(req_id)
                     del self.replies[req_id]
         
@@ -307,6 +308,8 @@ class KademliaNode(Node):
         Update last_seen time.
         """
         index = self.find_k_bucket_index(contact.node_id)
+        if index == -1: # the contact is the current node
+            return
         kbucket = self.k_buckets[index]
 
         if contact in kbucket.contacts:

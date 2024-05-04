@@ -120,7 +120,8 @@ class Request(Package):
         self.fulfilled = True
 
     def __str__(self) -> str:
-        return "REQ {} {} {} {}".format(self.id, self.sender, self.receiver, self.content)
+        return "REQ {} {} {} {}".format(self.id, self.sender.node_id, 
+                    self.receiver.node_id, self.content)
 
 class Reply(Package):
     # reply from a peer
@@ -139,7 +140,8 @@ class Reply(Package):
         self.proximity = "p2p"
 
     def __str__(self) -> str:
-        return "REP {} {} {} {} {}".format(self.id, self.sender, self.receiver, self.req_id, self.content)
+        return "REP {} {} {} {} {}".format(self.id, self.sender.node_id, 
+                    self.receiver.node_id, self.req_id, self.content)
     
 # class Heartbeat(Package):
 #     def __init__(self, id):

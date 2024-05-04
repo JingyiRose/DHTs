@@ -9,3 +9,4 @@ TIMEOUT = 1 # timeout for RPC calls
 
 K_COMMAND_FILE = "./test/k_commands.txt"
 K_KEYVAL_FILE = "./test/k_keyval.txt"
+DEBUG = True
