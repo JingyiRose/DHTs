@@ -10,20 +10,20 @@ class DHT:
         self.nodes = {}
         self.channels = []
     
-    def process(self, command):
-        # process command from controller
+    # def process(self, command):
+    #     # process command from controller
 
-        if command.type == "DHTInsertKey":
-            key, val = command.key, command.val
-            self.InsertKey(key, val)
-            print("key made: {}, {}".format(key,val))
+    #     if command.type == "DHTInsertKey":
+    #         key, val = command.key, command.val
+    #         self.InsertKey(key, val)
+    #         print("key made: {}, {}".format(key,val))
         
-        if command.type == "DHTMakeNode":
-            id, ip, port = command.id, command.ip, command.port
-            self.MakeNode(id, ip, port)
+    #     if command.type == "DHTMakeNode":
+    #         id, ip, port = command.id, command.ip, command.port
+    #         self.MakeNode(id, ip, port)
     
-        if command.type == "Finish":
-            return
+    #     if command.type == "Finish":
+    #         return
         
 
     # def DHTMakeKey(self, key, val):

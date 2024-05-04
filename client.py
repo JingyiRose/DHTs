@@ -5,9 +5,10 @@ import os
 
 class Client:
 
-    def __init__(self, local_node, key, write_to = None):
+    def __init__(self, local_node, query_key = None, keyval = None, write_to = None):
         self.local_node = local_node
-        self.query_key = key
+        self.query_key = query_key # key that the client wants to look up in dht
+        self.keyval = keyval # tuple (key, value) that the client wants to insert to dht
         self.lookup_id = get_random_digits(8)
         self.req_complete = False
         self.in_queue = []
@@ -18,7 +19,12 @@ class Client:
     
     def make_query(self):
         req = ClientRequest(self, self.local_node,
-                            content = "Look-up key={}".format(self.query_key), id = self.lookup_id)
+                            content = "Look-up key={}".format(self.query_key))
+        req.send()
+    
+    def insert_data(self):
+        req = PutRequest(self, self.local_node, 
+                         content = "Insert key={} value={}".format(*self.keyval))
         req.send()
 
 
