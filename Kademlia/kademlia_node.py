@@ -15,19 +15,54 @@ class KademliaNode(Node):
     """
 
     def __init__(self, node_id, ip_address, port, dht):
+        # do not call super().__init__ because we want have different threads
+        self.node_id = node_id 
+        self.ip_address = ip_address
+        self.port = port
+        self.in_channels = {} # key = id of node that self has a channel with, val  = channel instance
+        self.out_channels = {} # key = id of node that self has a channel with, val  = channel instance
+        self.dht = dht
+        self.in_queue = [] # FIFO queue of RPCs going into this node
+        self.is_done = False
 
-        # self.in_channels = {} # key = id of node that self has a channel with, val  = channel instance
-        # self.out_channels = {} # key = id of node that self has a channel with, val  = channel instance
-        # self.dht = dht
-        # self.in_queue = [] # FIFO queue of RPCs going into this node
-        # self.is_done = False
-        super().__init__(node_id, ip_address, port, dht)
         self.cache = {} # Cache <key, value> pairs
         self.k_buckets = {}
         for i in range(KEY_RANGE):
             self.k_buckets[i] = KBucket(node_id, i)
+
         # keep record of the unused replies we got so far 
         self.replies = {}  # req.id to reply dict
+        self.processing_queue = [] # FIFO queue of packages that this node has to process
+
+        # we will use a separate thread just to handle replies
+        def process_reply(node):
+            while not node.is_done:
+                if len(node.in_queue) > 0:
+                    pkg = node.in_queue.pop(0)
+                    if pkg.type == "REP":
+                        node.process(pkg)
+                    else:
+                        node.processing_queue.append(pkg)
+
+            return
+
+        process_reply_thr = threading.Thread(target=process_reply, args=(self,)) 
+        process_reply_thr.start()
+
+        # we will use a separate thread to process other packages
+        # (this might depend on some replies being processed)
+        def process_others(node):
+            while not node.is_done:
+                if len(node.processing_queue) > 0:
+                    pkg = node.processing_queue.pop(0)
+                    node.process(pkg)
+            return
+
+        process_others_thr = threading.Thread(target=process_others, args=(self,)) 
+        process_others_thr.start()
+
+
+
 
     
     def process(self, pkg):
@@ -35,7 +70,7 @@ class KademliaNode(Node):
         store replies that it gets from other nodes.
 
         Args:
-            pkg (Package): ClientRequest/Request/Reply
+            pkg (Package): ClientRequest(GET/PUT)/Request/Reply
         """
 
         # Client Requests
@@ -68,7 +103,8 @@ class KademliaNode(Node):
                 ping_reply(self, pkg)
         # Node Replies
         elif pkg.type == "REP":
-            self. replies[pkg.id] = pkg
+            # be careful pkg.id is not the same as pkg.req_id (for replies)!!
+            self.replies[pkg.req_id] = pkg
         return
 
         
@@ -128,12 +164,11 @@ class KademliaNode(Node):
             return self.cache[key]
 
         # use dictionary to avoid duplicated node_ids
-        k_closest_contacts = {} # sorted by proximity to key
+        k_closest_contacts = self.find_closed_contacts(key, K) # sorted by proximity to key
         queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
-        p_contacts = self.find_closed_contacts(key, P)
-        distance = xor_base10(self.node_id, key)
+        p_contacts = get_first(k_closest_contacts, P)
 
         while not value_found:
             # simulate the async calls
@@ -142,10 +177,10 @@ class KademliaNode(Node):
                 req_id = find_value_rpc(self, contact, key)
                 req_ids.append(req_id)
             # stop collecting replies when timeout is reached
-            time.sleep(TIMEOUT)
+            # time.sleep(TIMEOUT)
             for req_id in req_ids:
                 if req_id in self.replies:
-                    receiver_contact = self.replies[req_id].receiver
+                    reply_contact = self.replies[req_id].sender
                     reply_info = decode(self.replies[req_id].content).info
                     success, result = reply_info['success'], reply_info['result']
                     # halts immediately when any node returns the value
@@ -153,12 +188,12 @@ class KademliaNode(Node):
                         print("value found from find_value_rpc")
                         value = result
                         value_found = True
-                        node_id = self.replies[req_id].sender.node_id
+                        # node_id = self.replies[req_id].sender.node_id
                         break
                     else:
                         k_contacts = result
                         k_closest_contacts.update(k_contacts)
-                        queried_contacts.append(receiver_contact.node_id)
+                        queried_contacts.append(reply_contact.node_id)
                         req_ids.remove(req_id)
                         del self.replies[req_id]
             # of the k nodes the initiator has heard of closest to the target, it picks
@@ -213,13 +248,21 @@ class KademliaNode(Node):
     def lookup_k_nodes(self, key):
         """locate the k closest nodes to some given key in the DHT
         """
-        # use dictionary to avoid duplicated node_ids
-        k_closest_contacts = self.find_closed_contacts(key, K) # sorted by proximity to key
+        
+        k_closest_contacts = {}
+        # if the current node is equal to the key just return itself and k-1 closest contacts
+        if self.node_id == key:
+            k_closest_contacts[self.node_id] = self.convert_to_contact()
+            k_closest_contacts.update(self.find_closed_contacts(key, K-1)) # sorted by proximity to key
+            return k_closest_contacts
+            
+        k_closest_contacts = self.find_closed_contacts(key, K)
+        
         queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
         p_contacts = get_first(k_closest_contacts, P)
-        distance = xor_base10(self.node_id, key)
+        distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
 
         while True:
             # simulate the async calls
@@ -227,16 +270,17 @@ class KademliaNode(Node):
             for _, contact in p_contacts.items():
                 req_id = find_node_rpc(self, contact, key)
                 req_ids.append(req_id)
-            # wait to hear replies
-            time.sleep(TIMEOUT)
-            for req_id in req_ids:
-                if req_id in self.replies:
-                    receiver_contact = self.replies[req_id].receiver
-                    k_contacts = decode(self.replies[req_id].content).info['result']
-                    k_closest_contacts.update(k_contacts)
-                    queried_contacts.append(receiver_contact.node_id)
-                    req_ids.remove(req_id)
-                    del self.replies[req_id]
+            # wait to hear replies from all nodes
+            while len(req_ids) > 0:
+                for req_id in req_ids:
+                    if req_id in self.replies:
+                        reply_contact = self.replies[req_id].sender
+                        k_contacts = decode(self.replies[req_id].content).info['result']
+                        k_closest_contacts.update(k_contacts)
+                        queried_contacts.append(reply_contact.node_id)
+                        req_ids.remove(req_id)
+                        del self.replies[req_id]
+                
             # of the k nodes the initiator has heard of closest to the target, it picks
             # P that it has not yet queried and resends find_node RPC to them. 
             # note that the initiator can ignore nodes that don't respond quick enough.
@@ -244,7 +288,7 @@ class KademliaNode(Node):
             k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
             p_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:P])
             new_distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
-            if new_distance == distance:
+            if new_distance >= distance:
                 break
             distance = new_distance
             
@@ -260,13 +304,11 @@ class KademliaNode(Node):
             req_id = find_node_rpc(self, contact, key)
             req_ids.append(req_id)
 
-        time.sleep(TIMEOUT)
-        counter = 0
+        # time.sleep(TIMEOUT)
         # need to collect all replies
-        while counter < len(k_contacts):
+        while len(req_ids) > 0:
             for req_id in req_ids:
                 if req_id in self.replies:
-                    counter += 1
                     k_contacts = decode(self.replies[req_id].content).info['result']
                     k_closest_contacts.update(k_contacts)
                     req_ids.remove(req_id)
@@ -283,8 +325,8 @@ class KademliaNode(Node):
         node search for that ID. Add the nodes returned to the appropriate k-bucket.
         """
         k_bucket = self.k_buckets[index]
-        k_nodes = self.lookup_k_nodes(random.choice(k_bucket).node_id)
-        for _, contact in k_nodes:
+        k_nodes = self.lookup_k_nodes(k_bucket.get_random_key_in_range())
+        for _, contact in k_nodes.items():
             self.add_contact(contact)
 
     
@@ -320,7 +362,7 @@ class KademliaNode(Node):
             kbucket.add(contact)
             return
         # ping the contact at the head
-        lrs_node_id, lrs_contact = list(self.contact.items())[0]
+        lrs_node_id, lrs_contact = list(kbucket.contacts.items())[0]
         kbucket.remove(lrs_node_id)
         req_id = ping_rpc(self, lrs_contact)
         time.sleep(TIMEOUT)
@@ -338,11 +380,11 @@ class KademliaNode(Node):
         Args:
             key (str): the key to find the appropriate k-bucket
         
-        Returns: None if key is the same as the current node ID. Otherwise
+        Returns: -1 if key is the same as the current node ID. Otherwise
         return the index of the k-bucket.
         """
         if int(self.node_id) == int(key):
-            return None
+            return -1
         # e.g. when distance 1, it's in the range 2^0 to 2^1, so index is 0
         return len(xor_base2_str(self.node_id, key))-1
     

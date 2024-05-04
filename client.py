@@ -9,7 +9,6 @@ class Client:
         self.local_node = local_node
         self.query_key = query_key # key that the client wants to look up in dht
         self.keyval = keyval # tuple (key, value) that the client wants to insert to dht
-        self.lookup_id = get_random_digits(8)
         self.req_complete = False
         self.in_queue = []
         self.client_id = get_random_string(8)
@@ -18,7 +17,7 @@ class Client:
 
     
     def make_query(self):
-        req = ClientRequest(self, self.local_node,
+        req = GetRequest(self, self.local_node,
                             content = "Look-up key={}".format(self.query_key))
         req.send()
     
@@ -35,7 +34,7 @@ class Client:
         val = rep.content.split(" ")[-1]
         if self.write_to:
             f = open(self.write_to, 'a')
-            f.write("Query {} key = {} = value {}\n".format(self.lookup_id, self.query_key, val))
+            f.write("Query {} key = {} = value {}\n".format(self.client_id, self.query_key, val))
             f.close()
 
 

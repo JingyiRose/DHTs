@@ -10,10 +10,10 @@ from config import DEBUG
 
 class MessageType(Enum):
     # request message types
-    PING = "ping"
-    STORE = "store"
-    FIND_NODE = "find_node"
-    FIND_VALUE = "find_value"
+    PING = "PING"
+    STORE = "STORE"
+    FIND_NODE = "FIND_NODE"
+    FIND_VALUE = "FIND_VALUE"
 
 
 class Message:
@@ -27,13 +27,14 @@ class Message:
     def __str__(self) -> str:
         content = ""
         if "result" in self.info and type(self.info["result"]) == dict:
-            content = "result = {"
+            content = "Contacts = {"
             for key, value in self.info["result"].items():
-                content += "{}: {}, ".format(key, value)
+                # just print the node_ids of the contacts
+                content += "{}, ".format(key)
             content = content[:-2]+ "}"
         else:
             content = self.info
-        return "Message: type = {}, info = {}".format(self.type, content)
+        return "Message: {}, {}".format(self.type.value, content)
 
 def encode(msg: Message) -> str:
     return pkl.dumps(msg).hex()
@@ -44,10 +45,10 @@ def decode(msg: str) -> Message:
 
 def debug_print(debug, is_request, msg, pkg):
     if debug and is_request:
-        print("REQ S:{} R:{} {}".format(pkg.sender.node_id, 
+        print("REQ   {} S:{} R:{} {}".format(pkg.id, pkg.sender.node_id, 
                     pkg.receiver.node_id, msg))
     if debug and not is_request:
-        print("REPLY S:{} R:{} {}".format(pkg.sender.node_id, 
+        print("REPLY {} S:{} R:{} {}".format(pkg.req_id, pkg.sender.node_id, 
                     pkg.receiver.node_id, msg))
 
 def ping_rpc(node, dest: Contact, debug = DEBUG):
@@ -102,7 +103,7 @@ def ping_reply(node, pkg: Package, debug = DEBUG):
     """a node replies to a ping request
     """
     msg = Message(MessageType.PING, {})
-    reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+    reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
 
     node.send(reply)
@@ -116,7 +117,7 @@ def find_node_reply(node, pkg: Package, debug = DEBUG):
     """
     info = dict(result = node.find_node_handler(pkg.sender, decode(pkg.content).info["key"]))
     msg = Message(MessageType.FIND_NODE, info)
-    reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+    reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
     node.send(reply)
     debug_print(debug, False, msg, reply)
@@ -128,7 +129,7 @@ def find_value_reply(node, pkg: Package, debug = DEBUG):
     success, result = node.find_value_handler(pkg.sender, decode(pkg.content).info["key"])
     info = dict(success = success, result = result)
     msg = Message(MessageType.FIND_VALUE, info)
-    reply = Reply(pkg.sender, pkg.receiver, pkg.id, 
+    reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
     node.send(reply)
     debug_print(debug, False, msg, reply)

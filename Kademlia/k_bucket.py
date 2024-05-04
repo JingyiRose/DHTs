@@ -2,6 +2,7 @@
 from typing import List
 from Kademlia.utils import *
 import time
+import random
 
 
 class KBucket:
@@ -16,6 +17,12 @@ class KBucket:
         # index i represents nodes of distance [2^i, 2^{i-1}) from the current node
         self.index = index
 
+    def get_random_key_in_range(self):
+        """Get a random key whose distance with the current node is 
+        in the range of distance that the k-bucket covers.
+        """
+        rand_dist = random.randint(2**(self.index), 2**(self.index+1)-1)
+        return f'{int(self.node_id, KEY_BASE) + rand_dist:b}'
     
     def get_prefix(self):
         """Get the prefix that all nodes in this k-bucket share. 
