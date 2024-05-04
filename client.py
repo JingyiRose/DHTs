@@ -24,6 +24,7 @@ class Client:
     def insert_data(self):
         req = PutRequest(self, self.local_node, 
                          content = "Insert key={} value={}".format(*self.keyval))
+        print("Client of node {} sent a PutRequest {}".format(self.local_node, "Insert key={} value={}".format(*self.keyval)))
         req.send()
 
 

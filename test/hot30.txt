@@ -1,0 +1,30 @@
+insert key=60075009, val=0789826747169926
+insert key=33960533, val=9062768192357009
+nodejoin id=HQ01CJZ1, ip=OLJNH2QSEH19, port=37834, contact_node=VE8LU3NY
+insert key=99519626, val=8590947323159061
+look-up localnode=M6OVNPV4, key=59938939
+insert key=61436355, val=5287359797342991
+nodejoin id=BZ7G10SN, ip=P90SVEBK3VS0, port=87444, contact_node=M6OVNPV4
+insert key=75469080, val=2587235442496900
+look-up localnode=LV9WUXN4, key=17458696
+look-up localnode=VE8LU3NY, key=75469080
+insert key=41708142, val=4549604991411888
+look-up localnode=BZ7G10SN, key=41708142
+nodejoin id=0QOL4UOV, ip=001MUAUXBSVU, port=59614, contact_node=OYMSZ6C9
+insert key=64215203, val=1310518521678820
+look-up localnode=M6OVNPV4, key=99519626
+insert key=43890157, val=9894684215243709
+look-up localnode=LV9WUXN4, key=60075009
+insert key=96342841, val=7829368444842969
+insert key=19151189, val=3953984879152351
+insert key=40534173, val=3431056942745196
+nodejoin id=SKCRXDLC, ip=SAR4DOI8JSND, port=37184, contact_node=L1AA8B05
+look-up localnode=SKCRXDLC, key=99595405
+look-up localnode=VE8LU3NY, key=46547967
+insert key=62270502, val=4938937530584117
+insert key=03160058, val=5297223325890244
+look-up localnode=M6OVNPV4, key=03160058
+insert key=21417470, val=1792980799169380
+look-up localnode=L1AA8B05, key=08561926
+look-up localnode=SKCRXDLC, key=60075009
+insert key=14362730, val=5848788072929584

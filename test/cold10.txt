@@ -1,0 +1,10 @@
+nodejoin id=V663D73F, ip=78PMUI6NIN5T, port=25095, contact_node=None
+nodejoin id=BU2DCRDL, ip=CVBYMGP2UXO0, port=90423, contact_node=None
+nodejoin id=FXG4SX69, ip=XZL58VGJRBV0, port=65750, contact_node=None
+nodejoin id=KSLOHIQ6, ip=5CO601OFNRBJ, port=21133, contact_node=None
+nodejoin id=LACHOGOI, ip=9CTKJGLCQ60J, port=72370, contact_node=None
+nodejoin id=MNSBRDB4, ip=2666AI1RP17T, port=81135, contact_node=None
+nodejoin id=U30ED2ZZ, ip=BB4KC4I7PJ9V, port=78647, contact_node=None
+nodejoin id=K8ID0BM0, ip=DZD6D6PL2MRR, port=79186, contact_node=None
+nodejoin id=ZSN9SB99, ip=6YUNS7Z33T7A, port=44007, contact_node=None
+nodejoin id=V8W3IUMF, ip=WIR78T9377VT, port=15995, contact_node=None

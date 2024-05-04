@@ -5,6 +5,7 @@ from config import *
 
 random.seed(43)
 
+#### THIS FILE IS OUTDATED
 
 def maketest(num_nodes, num_keyvals, num_lookups, save_to, keyvalfile, 
              node_id_length = KEY_RANGE, node_ip_length = 12, node_port_length = 5, 
