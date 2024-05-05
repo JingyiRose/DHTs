@@ -18,13 +18,16 @@ class Client:
     
     def make_query(self):
         req = GetRequest(self, self.local_node,
-                            content = "Look-up key={}".format(self.query_key))
+                            content = "Look-up key={}\n".format(self.query_key))
+        # print("Client of node {} sent a GetRequest {}".format(self.local_node.node_id, 
+                # "Look-up key={}".format(self.query_key)))
         req.send()
     
     def insert_data(self):
         req = PutRequest(self, self.local_node, 
-                         content = "Insert key={} value={}".format(*self.keyval))
-        print("Client of node {} sent a PutRequest {}".format(self.local_node, "Insert key={} value={}".format(*self.keyval)))
+                         content = "Insert key={}, value={}\n".format(*self.keyval))
+        print("Client of node {} sent a PutRequest {}".format(self.local_node.node_id, 
+                "Insert key={}, value={}\n".format(*self.keyval)))
         req.send()
 
 

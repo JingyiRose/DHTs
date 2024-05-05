@@ -49,7 +49,7 @@ class ClientLookUp(Command):
         self.destination_key = destination_key
     
     def __str__(self) -> str:
-        return "ClientLookUp(localnode={}, key={})".format(self.local_node_id, self.local_node_id, self.destination_key)
+        return "ClientLookUp(localnode={}, key={})".format(self.local_node_id, self.destination_key)
     
 # class Finish(Command):
 #     def __init__(self):
@@ -89,6 +89,7 @@ def parse_commands(commandfile):
 def execute(commands, dht):
     for command in commands:
         dht.process(commands)
+    
 
 
 if __name__ == '__main__':

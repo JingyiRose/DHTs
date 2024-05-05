@@ -3,6 +3,7 @@ from typing import List
 from Kademlia.utils import *
 import time
 import random
+from contact import Contact
 
 
 class KBucket:
@@ -22,7 +23,7 @@ class KBucket:
         in the range of distance that the k-bucket covers.
         """
         rand_dist = random.randint(2**(self.index), 2**(self.index+1)-1)
-        return f'{int(self.node_id, KEY_BASE) + rand_dist:b}'
+        return f'{(int(self.node_id, KEY_BASE) + rand_dist) % (2**KEY_RANGE):b}'
     
     def get_prefix(self):
         """Get the prefix that all nodes in this k-bucket share. 
@@ -30,7 +31,9 @@ class KBucket:
         """
         # padded with 0 to a total length KEY_RANGE
         bin_string = f'{int(self.node_id, KEY_BASE):0{KEY_RANGE}b}'
-        return bin_string[:-self.index-1] + flip(bin_string[-self.index-1])
+        part1 = bin_string[:-self.index-1]
+        part2 = flip(bin_string[-self.index-1])
+        return part1 + part2
 
 
     def sort_by_proximity(self, target_key: str, num: int) -> dict:
@@ -75,7 +78,22 @@ class KBucket:
         return len(self.contacts)
     
     
-
+if __name__ == "__main__":
+    # test KBucket
+    node_id = "1010101"
+    index = 7
+    bucket = KBucket(node_id, index)
+    bucket.contacts = {"10011011": Contact("ip", "port", "10011011"), 
+                       "10001011": Contact("ip", "port", "10001011"),
+                       "10000000": Contact("ip", "port", "10000000")}
+    print(f'Key has length {KEY_RANGE}')
+    print(f'the node is {node_id}')
+    print(f'index of the bucket is {index}')
+    print(f'prefix of the bucket is {bucket.get_prefix()}')
+    print(f'a random key in the range is {bucket.get_random_key_in_range()}')
+    print(bucket.sort_by_proximity("10111011",10).keys())
+    print(bucket.sort_by_proximity("10101011",10).keys())
+    print(bucket.sort_by_proximity("00000000",10).keys())
 
 
 

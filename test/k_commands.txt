@@ -2,5 +2,5 @@ nodejoin id=1011011, ip=3VYFCFNZMZQ0, port=11100
 nodejoin id=1111000, ip=UZWDL8LMDOTO, port=11110
 insert localnode=1011011, key=11001101, val=100010001110011
 insert localnode=1111000, key=101100, val=1111101110010000
-look-up localnode=1111000, key=101100
-look-up localnode=1000101, key=11001101
+look-up localnode=1011011, key=101100
+look-up localnode=1111000, key=11001101

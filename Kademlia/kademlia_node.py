@@ -34,32 +34,35 @@ class KademliaNode(Node):
         self.replies = {}  # req.id to reply dict
         self.processing_queue = [] # FIFO queue of packages that this node has to process
 
-        # we will use a separate thread just to handle replies
-        def process_reply(node):
+
+        # self.exit_event = threading.Event() TODO gracefully terminate
+
+        # process nonblocking requests/replies
+        # Note: node join is executed by the main thread of DHT and can be blocking
+        def process_non_blocking(node):
             while not node.is_done:
                 if len(node.in_queue) > 0:
                     pkg = node.in_queue.pop(0)
-                    if pkg.type == "REP":
-                        node.process(pkg)
-                    else:
+                    if pkg.type == "PUT" or pkg.type == "GET":
                         node.processing_queue.append(pkg)
+                    else:
+                        node.process(pkg)
 
-            return
+        process_non_blocking_thr = threading.Thread(target=process_non_blocking, args=(self,)) 
+        # process_non_blocking_thr.daemon = True
+        process_non_blocking_thr.start()
 
-        process_reply_thr = threading.Thread(target=process_reply, args=(self,)) 
-        process_reply_thr.start()
-
-        # we will use a separate thread to process other packages
-        # (this might depend on some replies being processed)
-        def process_others(node):
+        # process blocking requests
+        def process_blocking(node):
             while not node.is_done:
                 if len(node.processing_queue) > 0:
                     pkg = node.processing_queue.pop(0)
                     node.process(pkg)
             return
 
-        process_others_thr = threading.Thread(target=process_others, args=(self,)) 
-        process_others_thr.start()
+        process_blocking_thr = threading.Thread(target=process_blocking, args=(self,))
+        # process_blocking_thr.daemon = True 
+        process_blocking_thr.start()
 
 
 
@@ -74,20 +77,31 @@ class KademliaNode(Node):
         """
 
         # Client Requests
+        if DEBUG:
+            if pkg.type == "GET" or pkg.type == "PUT":
+                print(f'Processing Client {pkg.type}: {pkg.content}......')
         if pkg.type == "GET":
+            value = None
             if pkg.key in self.cache:
-                rep = ClientReply(self, pkg.client, 
-                            content = "Value is {}".format(self.cache[pkg.key]), 
-                            proximity="local",  id = None)
-                rep.send()
-                print("key found immediately")
-                print("client request fulfilled")
+                value = self.cache[pkg.key]
             else:
-                self.lookup_keyval(pkg.key)
+                # value can be None if the key is not found
+                value = self.lookup_keyval(pkg.key)
+            
+            #TODO is this necessary? or send value to client directly?
+            rep = ClientReply(self, pkg.client, 
+                            content = "Value is {}".format(value), 
+                            proximity="local",  id = None)
+            rep.send()
+            print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {value}......')
             return
 
         elif pkg.type == "PUT":
             self.store_pair_on_k_nodes(pkg.key, pkg.val)
+            print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {pkg.val}......')
+            return
+        elif pkg.type == "ClientReply":
+            # do nothing
             return
         
         message = decode(pkg.content)
@@ -135,11 +149,13 @@ class KademliaNode(Node):
         if key in self.cache:
             # 1 is the success code for finding the value
             return (1,self.cache[key])
-        return (0,self.find_node_handler(key))
+        return (0, self.find_node_handler(sender, key))
 
 
     def store_handler(self, key, val):
         self.cache[key] = val
+        if DEBUG:
+            print(f"Stored <{key}, {val}> in node {self.node_id}")
     
 
     # ------------ Helper functions for handling Client Requests ------------
@@ -148,15 +164,14 @@ class KademliaNode(Node):
         """
         k_nodes = self.lookup_k_nodes(key) # dict
         for _, contact in k_nodes.items():
-            self.store_rpc(self.convert_node_to_contact(), contact, key, val)
+            store_rpc(self, contact, key, val)
 
     def lookup_keyval(self, key):
-        """lookup the value of the key in the DHT
+        """lookup the value of the key in the DHT return None if not found
         """
 
         value = None
         # node_id = None
-        value_found = False
 
         # similar to look-up k nodes, except that the recursive step 
         # uses find_value instead of find_node RPCs
@@ -169,8 +184,9 @@ class KademliaNode(Node):
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
         p_contacts = get_first(k_closest_contacts, P)
+        distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
 
-        while not value_found:
+        while not value:
             # simulate the async calls
             req_ids = []
             for _, contact in p_contacts.items():
@@ -187,7 +203,6 @@ class KademliaNode(Node):
                     if success == 1:
                         print("value found from find_value_rpc")
                         value = result
-                        value_found = True
                         # node_id = self.replies[req_id].sender.node_id
                         break
                     else:
@@ -201,22 +216,27 @@ class KademliaNode(Node):
             # note that the initiator can ignore nodes that don't respond quick enough.
             assert len(k_closest_contacts) != 0
             k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
-            p_contacts = dict(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items())[:P])
+            p_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:P])
+            new_distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
+            if new_distance >= distance:
+                break
+            distance = new_distance
                 
 
-        # store the <key, value> pair at the closest node it observed to the key
-        # that did not return the value
+        if value:
+            # store the <key, value> pair if the node is closer than any other node
+            if xor_base10(self.node_id, key) < xor_base10(list(k_closest_contacts.items())[0][0], key):
+                self.cache[key] = value
+            # store the <key, value> pair at the closest node it observed to the key
+            # that did not return the value
 
-        # For a fair comparison with Chord, we might not want to do this optimization
-        # k_closest_contacts = get_first(sort_contact_dict(k_closest_contacts, key),K)
-        # for id, contact in k_closest_contacts.items():
-        #     if id != node_id:
-        #         self.store_rpc(self.convert_to_contact(), contact, key, value)
-        #         break
+            # For a fair comparison with Chord, we might not want to do this optimization
+            # k_closest_contacts = get_first(sort_contact_dict(k_closest_contacts, key),K)
+            # for id, contact in k_closest_contacts.items():
+            #     if id != node_id:
+            #         store_rpc(self, contact, key, value)
+            #         break
 
-        # store the <key, value> pair if the node is closer than any other node
-        if xor_base10(self.node_id, key) < xor_base10(list(k_closest_contacts.items())[0][0], key):
-            self.cache[key] = value
         
         return value
 
@@ -404,12 +424,14 @@ class KademliaNode(Node):
         closest_contact = {}
         # search the buckets from closest to the key to farthest until we have num nodes
 
-        # Let bucket_string = int(self.node_id) ^ 2^i
+        # Let bucket_string = int(self.node_id) ^ (2**i))% (2**KEY_RANGE)
         # This is the string by flipping 1 bit of node_id at the specified index 
         # corresponding to the bucket.
         # We can use this string to measure the distance of key from the bucket
         sorted_bucket_indices = sorted(list(range(KEY_RANGE)), 
-                                key=lambda i: int(target_key, 2) ^int(self.node_id) ^ 2^i)
+                        key=lambda i: int(target_key, KEY_BASE) ^ \
+                            ((int(self.node_id, KEY_BASE) ^ \
+                            (2 ** i)) % (2 ** KEY_RANGE)))
 
         num_node_needed = num
         while num_node_needed > 0 and len(sorted_bucket_indices) > 0:
@@ -421,3 +443,17 @@ class KademliaNode(Node):
 
         return closest_contact
     
+
+
+if __name__ == "__main__":
+    # test sort_bucket_indices
+    target_key = "101011"
+    node_id = "1010111"
+    sorted_bucket_indices = sorted(list(range(KEY_RANGE)), 
+                    key=lambda i: int(target_key, KEY_BASE) ^ \
+                        ((int(node_id, KEY_BASE) ^ \
+                        (2 ** i)) % (2 ** KEY_RANGE)))
+    assert sorted_bucket_indices == [6,5,4,3,2,0,1,7]
+
+    sorted_prefixes = map(lambda i: KBucket(node_id, i).get_prefix(), sorted_bucket_indices)
+    print(list(sorted_prefixes))

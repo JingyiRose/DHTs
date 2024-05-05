@@ -24,15 +24,15 @@ def flip(bit: str):
     if bit == '0': return '1'
     if bit == '1': return '0'
 
-def xor_base10(key1: str, key2: str):
+def xor_base10(key1: str, key2: str, key_base = KEY_BASE):
     """find the XOR distance of two keys. Yield answer in base 10
     """
-    return int(key1, KEY_BASE) ^ int(key2, KEY_BASE)
+    return int(key1, key_base) ^ int(key2, key_base)
 
-def xor_base2_str(key1: str, key2: str):
+def xor_base2_str(key1: str, key2: str, key_base = KEY_BASE):
     """find the XOR distance of two keys. Yield answer in base 2 string
     """
-    distance = int(key1, KEY_BASE) ^ int(key2, KEY_BASE)
+    distance = int(key1, key_base) ^ int(key2, key_base)
     # e.g. f'{14:#b}', f'{14:b}' yields ('0b1110', '1110')
     # Note the string is empty if distance is 0 (we strip the leading 0s)
     return re.sub('^0', '', f'{distance:b}')

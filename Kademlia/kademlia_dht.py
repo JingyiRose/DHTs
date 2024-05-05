@@ -24,9 +24,14 @@ class KademliaDHT(DHT):
         # print("node {} made".format(node_id))
         # print("===================================")
         return
+    
+    # --------------- Centralized Operations for QuickStart  ---------------
             
-
-
+    def centralized_node_join(self, node):
+        """Centralized operation for a node to join the network."""
+        # print("node {} joining".format(node.node_id))
+        self.nodes[node.node_id] = node
+        
 
 
 

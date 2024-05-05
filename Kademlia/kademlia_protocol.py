@@ -31,7 +31,7 @@ class Message:
             for key, value in self.info["result"].items():
                 # just print the node_ids of the contacts
                 content += "{}, ".format(key)
-            content = content[:-2]+ "}"
+            content += "}"
         else:
             content = self.info
         return "Message: {}, {}".format(self.type.value, content)
