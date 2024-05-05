@@ -112,6 +112,9 @@ class KademliaNode(Node):
             
             elif message.type == MessageType.FIND_VALUE:
                 find_value_reply(self, pkg)
+
+            elif message.type == MessageType.STORE:
+                store_reply(self, pkg)
             
             elif message.type == MessageType.PING:
                 ping_reply(self, pkg)
@@ -152,10 +155,6 @@ class KademliaNode(Node):
         return (0, self.find_node_handler(sender, key))
 
 
-    def store_handler(self, key, val):
-        self.cache[key] = val
-        if DEBUG:
-            print(f"Stored <{key}, {val}> in node {self.node_id}")
     
 
     # ------------ Helper functions for handling Client Requests ------------
@@ -221,8 +220,28 @@ class KademliaNode(Node):
             if new_distance >= distance:
                 break
             distance = new_distance
-                
 
+        if not value:
+            k_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:K])
+
+            req_ids = []
+            for _, contact in k_contacts.items():
+                req_id = find_value_rpc(self, contact, key)
+                req_ids.append(req_id)
+
+            while len(req_ids) > 0 and not value:
+                for req_id in req_ids:
+                    if req_id in self.replies:
+                        reply_contact = self.replies[req_id].sender
+                        reply_info = decode(self.replies[req_id].content).info
+                        success, result = reply_info['success'], reply_info['result']
+                        if success == 1:
+                            print("value found from find_value_rpc")
+                            value = result
+                            break
+                        req_ids.remove(req_id)
+                        del self.replies[req_id]
+                    
         if value:
             # store the <key, value> pair if the node is closer than any other node
             if xor_base10(self.node_id, key) < xor_base10(list(k_closest_contacts.items())[0][0], key):
@@ -230,7 +249,7 @@ class KademliaNode(Node):
             # store the <key, value> pair at the closest node it observed to the key
             # that did not return the value
 
-            # For a fair comparison with Chord, we might not want to do this optimization
+            # For a fair comparison with Chord, we do not do this optimization
             # k_closest_contacts = get_first(sort_contact_dict(k_closest_contacts, key),K)
             # for id, contact in k_closest_contacts.items():
             #     if id != node_id:
@@ -385,7 +404,7 @@ class KademliaNode(Node):
         lrs_node_id, lrs_contact = list(kbucket.contacts.items())[0]
         kbucket.remove(lrs_node_id)
         req_id = ping_rpc(self, lrs_contact)
-        time.sleep(TIMEOUT)
+        time.sleep(MEAN*2)
         if req_id in self.replies:
             kbucket.add(lrs_contact)
             del self.replies[req_id]

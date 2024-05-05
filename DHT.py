@@ -3,6 +3,7 @@ from command import *
 from distributions import *
 from node import *
 from channel import *
+from config import *
 
 class DHT:
 
@@ -35,7 +36,7 @@ class DHT:
     #     self.nodes[key] = node
 
 
-    def MakeChannel(self, from_node_id, to_node_id, latency_dist = Gaussian(250, 10)):
+    def MakeChannel(self, from_node_id, to_node_id, latency_dist = Gaussian(MEAN, SD)):
         from_node = self.nodes[from_node_id]
         to_node = self.nodes[to_node_id]
         c1 = Channel(from_node, to_node, latency_dist)

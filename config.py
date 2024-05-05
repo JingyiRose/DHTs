@@ -1,3 +1,8 @@
+"""Shared Parameters"""
+MEAN = 0.01 # mean of the gaussian distribution
+SD = 0.0001 # standard deviation of the gaussian distribution
+
+
 """System Parameters for Kademalia Protocol
 """
 K = 3 # Replication Parameter in case of failures

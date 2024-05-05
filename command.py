@@ -1,7 +1,7 @@
 # from env import *
 
 
-from config import K_COMMAND_FILE
+from config import K_COMMAND_FILE, DEBUG
 
 
 class Command:
@@ -82,7 +82,6 @@ def parse_commands(commandfile):
             localnode_id = cmd_split[1].split("=")[-1][:-1]
             key = cmd_split[2].split("=")[-1][:-1]
             commands.append(ClientLookUp(localnode_id,key))
-    
     return commands
 
 

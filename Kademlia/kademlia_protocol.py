@@ -111,6 +111,14 @@ def ping_reply(node, pkg: Package, debug = DEBUG):
     return
 
 # Store request does not need a reply
+def store_reply(node, pkg: Package):
+    data = decode(pkg.content).info
+    key, val = data["key"], data["value"]
+    node.cache[key]= val
+    if DEBUG:
+        print(f"Stored <{key}, {val}> in node {node.node_id}")
+    return
+
 
 def find_node_reply(node, pkg: Package, debug = DEBUG):
     """a node replies to a find_node request
