@@ -6,7 +6,7 @@ random.seed(1003)
 
 
 def gen_eval_lookups_only():
-    # [20,50,100] starting nodes, 1000 starting keys
+    # [20,50,100] starting nodes, 250 starting keys
     # evaluation on 500 look-ups
 
     L = 12
@@ -27,7 +27,7 @@ def gen_eval_lookups_only():
                     node_port_length = 5, key_length = L, key_base= 2, val_length = 16, stable_start=stable_start)
         
 def gen_eval_lookup_insert():
-    # 50 starting nodes, 1000 starting keys
+    # 50 starting nodes, 250 starting keys
     # evaluation on 500 normal ops with p_insertkey = {0.05, 0.1, 0.25, 0.5}
 
     L = 12
@@ -48,7 +48,7 @@ def gen_eval_lookup_insert():
                     node_port_length = 5, key_length = L, key_base= 2, val_length = 16, stable_start=stable_start)
         
 def gen_eval_lookup_insert_nodejoin():
-    # 50 starting nodes, 1000 starting keys
+    # 50 starting nodes, 250 starting keys
     # evaluation on 500 normal ops with p_insertkey = 0.25, p_nodejoin = {0.002, 0.01, 0.02}
 
     L = 12
