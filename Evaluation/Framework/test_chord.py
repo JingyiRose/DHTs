@@ -55,9 +55,9 @@ if __name__ == "__main__":
     # stable_start = True
     # l = 10
 
-    num_start_nodes = 9
-    num_start_keys = 10
-    num_ops = 112
+    num_start_nodes = 10
+    num_start_keys = 9
+    num_ops = 15
     p_nodejoin = 0
     p_insertkey = 0
     p_lookups = 1

@@ -1,9 +1,9 @@
 from DHT import *
 from Chord.chord_node import *
 import math
-from Chord.chord_node5 import *
+from Chord.chord_node6 import *
 
-class Chord5(DHT):
+class Chord6(DHT):
 
     def __init__(self, m, hash_fn = None, is_cheating = False):
         super().__init__()
@@ -58,7 +58,7 @@ class Chord5(DHT):
 
         self.cold_keyvals.append((key, val))
          
-        print("Key ({},{}) added cold".format(key,val))
+        # print("Key ({},{}) added cold".format(key,val))
 
 
     def make_finger(self, pos):
@@ -74,13 +74,13 @@ class Chord5(DHT):
         else:
             contact_node = "None"
 
-        node = ChordNode5(node_id, ip_address, port, contact_node, dht = self, pos = pos)
+        node = ChordNode6(node_id, ip_address, port, contact_node, dht = self, pos = pos)
         if not make_contact:
             self.cold_nodes.append(node)
 
         self.nodes[node_id] = node
         self.node_ids.append(node_id)
-        print("Node {} made & pos = {} & active = {}".format(node_id, pos, node.active))
+        # print("Node {} made & pos = {} & active = {}".format(node_id, pos, node.active))
         if not contact_node == "None":
             self.MakeChannel(node_id, contact_node)
             node.initialize() 
@@ -90,7 +90,7 @@ class Chord5(DHT):
         for (key,val) in self.cold_keyvals:
             successor_node_id = self.find_successor_node(self.hash_fn(int(key)), None)
             self.nodes[successor_node_id].store(key, val)
-            print("Key ({},{}) added pos={} at node={} pos={}".format(key,val, self.hash_fn(int(key)) % self.keyspace_size, successor_node_id, self.hash_fn(successor_node_id)))
+            # print("Key ({},{}) added pos={} at node={} pos={}".format(key,val, self.hash_fn(int(key)) % self.keyspace_size, successor_node_id, self.hash_fn(successor_node_id)))
         pass
     
     def stabilize_cold_files(self):

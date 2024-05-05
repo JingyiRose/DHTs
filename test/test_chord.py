@@ -3,7 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath('..'))
 from Chord.chord import *
 from Chord.chord_node import *
-from controller_v2 import *
+from framework_v2.controller_v2 import *
 # from controller import *
 import random
 from Chord.chord2 import *

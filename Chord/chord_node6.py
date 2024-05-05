@@ -11,7 +11,7 @@ def is_in_between(x,l,r,m):
     return (x-l-1) % m + (r-x) % m == (r-l-1) % m
 
 
-class ChordNode5(Node):
+class ChordNode6(Node):
     def __init__(self, node_id, ip_address, port, contact_node, dht, pos, coldstart=False):
         super().__init__(node_id, ip_address, port, dht)
         self.keyvals = {}
@@ -38,7 +38,10 @@ class ChordNode5(Node):
         self.stabilizer = not (contact_node == "None")
         self.lock = threading.Lock()
         self.clients = {}
-
+        self.lookup_queue = []
+        self.put_queue = []
+        self.release_lookups = True
+        self.keys_queue = []
         for i in range(self.num_identifier_bits):
             if contact_node == "None":
                 self.finger[(self.pos_on_ring + 2 ** i) % self.keyspace_size] = node_id
@@ -66,20 +69,31 @@ class ChordNode5(Node):
                         node.init_queue.append(pkg)
                     elif pkg.type.startswith("Stab") and pkg.initiator == node.node_id:
                         node.init_queue.append(pkg)
+                    elif pkg.type.startswith("PUT"):
+                        node.put_queue.append(pkg)
+                    elif pkg.type.startswith("Keys"):
+                        node.keys_queue.append(pkg)
                     else:
                         node.normal_queue.append(pkg)
                 else:
                     if node.active == False:
                         if len(node.init_queue) > 0:
                             pkg = node.init_queue.pop(0)
-                            self.process(pkg)
+                            node.process(pkg)
                     elif node.active == True:
                         if len(node.init_queue) > 0:
                             pkg = node.init_queue.pop(0)
                             self.process(pkg)
+                        elif len(node.keys_queue) > 0:
+                            pkg = node.keys_queue.pop(0)
+                            node.process(pkg)
+                        elif len(node.put_queue) > 0:
+                            pkg = node.put_queue.pop(0)
+                            node.process(pkg)
                         elif len(node.normal_queue) > 0:
                             pkg = node.normal_queue.pop(0)
-                            self.process(pkg)
+                            node.process(pkg)
+                        
             return
 
         # make each node its own thead (running forever, as long as packages (i.e. RPCs) remained, pop and process it)
@@ -98,7 +112,7 @@ class ChordNode5(Node):
             self.process_finger(pkg)
         if pkg.type.startswith("Keys"):
             self.process_key(pkg)
-        if pkg.type.startswith("Client"):
+        if pkg.type.startswith("GET"):
             self.process_client(pkg)
         if pkg.type.startswith("LookUp"):
             self.process_lookup(pkg)
@@ -136,10 +150,11 @@ class ChordNode5(Node):
         print("Node {} fixing finger".format(self.node_id))
         if self.is_finger_ready():
             for finger in self.finger:
-                content = "find-successor pos={}".format(finger)
-                next_node = self.finger[random.choice(list(self.finger.keys()))]
-                req = FingerRequest(self.node_id, next_node, content, initiator = self.node_id)
-                self.send(req)
+                if random.random() < 1:
+                    content = "find-successor pos={}".format(finger)
+                    next_node = self.finger[random.choice(list(self.finger.keys()))]
+                    req = FingerRequest(self.node_id, next_node, content, initiator = self.node_id)
+                    self.send(req)
 
 
     def is_finger_ready(self):
@@ -149,7 +164,10 @@ class ChordNode5(Node):
         return True
     
     def store(self, key, val):
+        self.lock.acquire()
         self.keyvals[key] = val
+        self.release_lookups = True
+        self.lock.release()
 
     def initialize(self):
         # find successor node
@@ -197,9 +215,10 @@ class ChordNode5(Node):
             self.send(req)
     
     def process_client(self, pkg):
-        if pkg.type == "ClientRequest":
+        if pkg.type == "GET":
             # print("Client request received at node {} id = {} content={}".format(self.node_id, pkg.id, pkg.content))
-            query_key = pkg.content.split("=")[-1]
+            print(pkg.content)
+            query_key = pkg.content.split("=")[-1][:-1]
             if query_key in self.keyvals:
                 content = "val={} hops={}".format(self.keyvals[query_key], 0)
                 self.notify_client(pkg.client, content)
@@ -213,7 +232,7 @@ class ChordNode5(Node):
                     lookup_pos = self.dht.hash_fn(int(query_key)) % self.keyspace_size
                     next_node_id = self.find_next_node_id(lookup_pos)
                     client = pkg.client
-                    req = LookUpRequest(self.node_id, next_node_id , content = pkg.content, initiator=self.node_id, client_id = client.client_id, num_hops=0, proximity = "local", id = None)
+                    req = LookUpRequest(self.node_id, next_node_id , content = pkg.content[:-1], initiator=self.node_id, client_id = client.client_id, num_hops=0, proximity = "local", id = None)
                     self.pkg_pointers[req.id] = pkg.id
                     self.ongoing_requests[req.id] = req
                     self.send(req)
@@ -227,7 +246,7 @@ class ChordNode5(Node):
         key = pkg.content.split("=")[-2].split(" ")[0]
         if is_in_between(self.dht.hash_fn(key), self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
             self.store(key, val)
-            # print("Node {} stores ({},{})".format(self.node_id, key, val))
+            print("Node {} stores ({},{})".format(self.node_id, key, val))
         
         else:
             next_node_id = self.successor
@@ -272,7 +291,7 @@ class ChordNode5(Node):
                     print("Client look-up request found!")
                 else:
                     print("Node {} circulating request for query {} bc pos={} pred={} lookup={}".format(self.node_id, query_key, self.pos_on_ring, self.predecessor_pos, query_pos))
-                    self.in_queue.append(pkg)
+                    self.normal_queue.append(pkg)
                     time.sleep(5)
             else:
                 next_node_id = self.find_next_node_id(query_pos)
@@ -323,10 +342,10 @@ class ChordNode5(Node):
             if reply_node != self.node_id:
                 if is_in_between(reply_node_pos, self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
                     self.update_predecessor(reply_node, reply_node_pos)
-                    print("Node {} predecessor updated to {} pos={}".format(self.node_id, reply_node, reply_node_pos))
+                    print("Node {} pos={} predecessor updated to {} pos={}".format(self.node_id, self.pos_on_ring, reply_node, reply_node_pos))
                 if is_in_between(reply_node_pos, self.pos_on_ring-1, self.successor_pos, self.keyspace_size):
                     self.update_successor(reply_node, reply_node_pos)
-                    print("Node {} successor updated to {} pos={}".format(self.node_id, reply_node, reply_node_pos))
+                    print("Node {} pos={} successor updated to {} pos={}".format(self.node_id, self.pos_on_ring, reply_node, reply_node_pos))
 
 
     def process_key(self, pkg):
@@ -353,9 +372,8 @@ class ChordNode5(Node):
         if pkg.type == "KeysReply":
             val = pkg.content.split("=")[-1]
             key = int(pkg.content.split("=")[-2].split(" ")[0])
-            self.lock.acquire()
-            self.keyvals[key] = val
-            self.lock.release()
+            print("Node {} storing (key,val)=({},{})".format(self.node_id, key,val))
+            self.store(key,val)
             
         
     
@@ -396,7 +414,7 @@ class ChordNode5(Node):
         if pkg.type == "InitSuccessorRequest":
             if pkg.content.startswith("find successor="):
                 pos = int(pkg.content.split("=")[-1])
-                print("ABOUT TO BE ERROR: {} {} {} {} {} {}".format(pos, self.predecessor_pos, self.pos_on_ring, self.node_id, pkg.initiator, self.active))
+                # print("ABOUT TO BE ERROR: {} {} {} {} {} {}".format(pos, self.predecessor_pos, self.pos_on_ring, self.node_id, pkg.initiator, self.active))
                 if not self.active:
                     print("CIRCULATING")
                     self.normal_queue.append(pkg)

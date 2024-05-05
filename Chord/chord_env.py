@@ -5,7 +5,7 @@ class LookUpRequest(Package):
     # p2p request
     # There could be other various types requests depending on the content
     
-    def __init__(self, sender_node, receiver_node, content, initiator = None, client_req_id = None, proximity = "p2p", id = None):
+    def __init__(self, sender_node, receiver_node, content, initiator = None, client_id = None, num_hops = 0, proximity = "p2p", id = None):
         self.type = "LookUpRequest"
         if id == None:
             self.id = get_random_string(12)
@@ -18,14 +18,15 @@ class LookUpRequest(Package):
         self.clock_on = False
         self.fulfilled = False
         self.initiator = initiator
-        self.client_req_id = client_req_id
+        self.client_id = client_id
+        self.num_hops = num_hops
 
 
 class LookUpReply(Package):
     # p2p request
     # There could be other various types requests depending on the content
     
-    def __init__(self, sender_node, receiver_node, req_id, content, initiator = None, client_req_id = None, proximity = "p2p", id = None):
+    def __init__(self, sender_node, receiver_node, req_id, content, initiator = None, client_id = None, num_hops = 0, proximity = "p2p", id = None):
         self.type = "LookUpReply"
         if id == None:
             self.id = get_random_string(12)
@@ -39,7 +40,8 @@ class LookUpReply(Package):
         self.fulfilled = False
         self.initiator = initiator
         self.req_id = req_id
-        self.client_req_id = client_req_id
+        self.client_id = client_id
+        self.num_hops = num_hops
 
 
 
@@ -144,6 +146,24 @@ class KeysReply(Package):
     
     def __init__(self, sender_node, receiver_node, content, initiator = None, proximity = "p2p", id = None):
         self.type = "KeysReply"
+        if id == None:
+            self.id = get_random_string(12)
+        else:
+            self.id = id
+        self.sender = sender_node # id
+        self.receiver = receiver_node # id
+        self.proximity = "p2p"
+        self.content = content
+        self.clock_on = False
+        self.fulfilled = False
+        self.initiator = initiator
+
+class PutByNode(Package):
+    # p2p request
+    # There could be other various types requests depending on the content
+    
+    def __init__(self, sender_node, receiver_node, content, initiator = None, proximity = "p2p", id = None):
+        self.type = "PUTByNode"
         if id == None:
             self.id = get_random_string(12)
         else:

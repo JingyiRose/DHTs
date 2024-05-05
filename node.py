@@ -20,22 +20,22 @@ class Node:
         # self.pkg_pointers = {}
 
 
-        def thread_function(node):
-            while not node.is_done:
-                if len(node.in_queue) > 0:
-                    pkg = node.in_queue.pop(0)
-                    node.process(pkg)
-            return
+        # def thread_function(node):
+        #     while not node.is_done:
+        #         if len(node.in_queue) > 0:
+        #             pkg = node.in_queue.pop(0)
+        #             node.process(pkg)
+        #     return
 
-        # make each node its own thead (running forever, as long as packages (i.e. RPCs) remained, pop and process it)
-        thr = threading.Thread(target=thread_function, args=(self,)) 
-        thr.start()
+        # # make each node its own thead (running forever, as long as packages (i.e. RPCs) remained, pop and process it)
+        # thr = threading.Thread(target=thread_function, args=(self,)) 
+        # thr.start()
 
 
     def send(self, pkg):
         # RPCs from peer to peer by this node sending a package (request, reply, etc) into a channel
-        # receiver_id = pkg.receiver
-        receiver_id = pkg.receiver.node_id
+        receiver_id = pkg.receiver
+        # receiver_id = pkg.receiver.node_id
         if receiver_id not in self.out_channels:
             self.open_channel(receiver_id)
         channel = self.out_channels[receiver_id]

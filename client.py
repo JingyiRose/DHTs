@@ -30,6 +30,13 @@ class Client:
                 "Insert key={}, value={}.".format(*self.keyval)))
         req.send()
 
+    
+    def get(self, content):
+        if self.write_to:
+            f = open(self.write_to, 'a')
+            f.write("key = {} {}\n".format(self.query_key, content))
+            f.close()
+
 
     def wake(self):
         rep = self.in_queue.pop(0)
