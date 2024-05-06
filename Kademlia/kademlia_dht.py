@@ -16,7 +16,7 @@ class KademliaDHT(DHT):
         
     def MakeNode(self, node_id, ip_address, port):
         contact = None
-        if len(self.nodes.items()) > 0:
+        if len(list(self.nodes.items())) > 0:
             # assign an arbitrary node in the network as contact to the new node
             contact = self.nodes[random.choice(list(self.nodes.keys()))].convert_to_contact()
         
@@ -82,7 +82,7 @@ class KademliaDHT(DHT):
 
     def get_global_view(self):
         """Get the global view of the network."""
-        for node_id in self.nodes:
+        for node_id in self.nodes.keys():
             node = self.nodes[node_id]
             print(f'----------Node {node_id}----------')
             print(f'KBuckets:')
@@ -100,11 +100,11 @@ class KademliaDHT(DHT):
             pkl.dump(self, f, protocol=pkl.HIGHEST_PROTOCOL)
     
     def all_nodes_finished(self):
-        return all([self.nodes[node_id].has_finished for node_id in self.nodes])
+        return all([self.nodes[node_id].has_finished for node_id in self.nodes.keys()])
 
     def clean_up(self):
         """Clean up the network. Stop all nodes."""
-        for node_id in self.nodes:
+        for node_id in self.nodes.keys():
             self.nodes[node_id].stop()
         return
 
@@ -114,7 +114,7 @@ def read_state_from_file(filename, restart: bool) -> KademliaDHT:
     with open(filename, 'rb') as f:
         k_dht = pkl.load(f)
         if restart:
-            for node_id in k_dht.nodes:
+            for node_id in k_dht.nodes.keys():
                 k_dht.nodes[node_id].start()
         return k_dht
     

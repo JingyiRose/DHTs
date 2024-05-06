@@ -4,10 +4,11 @@ sys.path.insert(0, os.path.abspath('..'))
 from Evaluation.Framework.k_controller import *
 from Evaluation.Framework.make_commands_v2 import *
 from Kademlia.kademlia_dht import *
+import traceback
 
 
 
-def save_init_state(start_filename, key_length, save_init_filename):
+def save_init_state(start_filename, key_length, save_init_filename, rep_filename):
     dht = KademliaDHT(key_length)
     try:
         controller = KController(start_filename, None, dht, rep_filename)
@@ -19,27 +20,29 @@ def save_init_state(start_filename, key_length, save_init_filename):
         
     except Exception as e:
         print("----------Exception Occured ---------------")
-        print(e.args)
-        dht.clean_up()
+        print(e)
+        print(traceback.format_exc())
+        # dht.clean_up()
 
 def continue_ops_from_state(save_init_filename, normal_ops_filename, rep_filename, save_final_filename):
     try:
         dht = read_state_from_file(save_init_filename, True) # restart = True
         controller = KController(None, normal_ops_filename, dht, rep_filename)
-        start_time = time.time()
+        # start_time = time.time()
         controller.execute_eval()
-        while not dht.all_nodes_finished():
-            time.sleep(3)
-        end_time = time.time()
-        time.sleep(10)
-        print(f'----------All nodes finished in {end_time-start_time} seconds.----------')
-        dht.write_state_to_file(save_final_filename)
+        # while not dht.all_nodes_finished():
+        #     time.sleep(3)
+        # end_time = time.time()
+        # time.sleep(10)
+        # print(f'----------All nodes finished in {end_time-start_time} seconds.----------')
+        # dht.write_state_to_file(save_final_filename)
         # dht.clean_up() # stop all threads
-        print("----------Finish Clean Up ---------------")
+        # print("----------Finish Clean Up ---------------")
     except Exception as e:
         print("----------Exception Occured ---------------")
-        print(e.args)
-        dht.clean_up()
+        print(e)
+        print(traceback.format_exc())
+        # dht.clean_up()
 
 def inspect_init_state(save_init_filename):
     dht = read_state_from_file(save_init_filename, False) # restart = False
@@ -58,7 +61,7 @@ def inspect_final_state(save_final_filename):
 """
 
 def test_two_phase(start_filename, normal_ops_filename, rep_filename, key_length, save_init_filename, save_final_filename):
-    save_init_state(start_filename, key_length, save_init_filename)
+    save_init_state(start_filename, key_length, save_init_filename, rep_filename)
     continue_ops_from_state(save_init_filename, normal_ops_filename, rep_filename, save_final_filename)
 
 def test(start_filename, normal_ops_filename, rep_filename, key_length, save_final_filename):
@@ -67,15 +70,16 @@ def test(start_filename, normal_ops_filename, rep_filename, key_length, save_fin
         dht = KademliaDHT(key_length)
         controller = KController(start_filename, normal_ops_filename, dht, rep_filename)
         controller.execute_all()
-        while not dht.all_nodes_finished():
-            time.sleep(3)
-        print(f'----------All nodes finished for {normal_ops_filename} ops.----------')
-        dht.write_state_to_file(save_final_filename)
+        # while not dht.all_nodes_finished():
+            # time.sleep(3)
+        # print(f'----------All nodes finished for {normal_ops_filename} ops.----------')
+        # dht.write_state_to_file(save_final_filename)
         # dht.clean_up() # stop all threads
-        print("----------Finish Clean Up ---------------")
+        # print("----------Finish Clean Up ---------------")
     except Exception as e:
         print("----------Exception Occured ---------------")
-        print(e.args)
+        print(e)
+        print(traceback.format_exc())
         dht.clean_up()
 
 def eval_1():
@@ -88,13 +92,12 @@ def eval_3():
     return
 
 
-if __name__ == "__main__":
-
-    num_start_nodes = 50
-    num_start_keys = 50
-    num_ops = 50
+def small_test():
+    num_start_nodes = 20
+    num_start_keys = 20
+    num_ops = 20
     p_nodejoin = 0
-    p_insertkey = 0
+    p_insertkey = 0.5
     p_lookups = 0.5
     start_filename = "k_small_init.txt"
     normal_ops_filename = "k_small_normal_ops.txt"
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     stable_start = True
     key_length = 10
 
-    make_commands = False
+    make_commands = True
     run_test = True
     continue_from_init = False
 
@@ -121,3 +124,12 @@ if __name__ == "__main__":
 
     # inspect_init_state(save_init_filename)
     # inspect_final_state(save_final_filename)
+    return
+
+
+if __name__ == "__main__":
+    small_test()
+    
+
+
+    
