@@ -1,0 +1,5 @@
+nodejoin id=1110101, ip=FW2H2O6VVMPA, port=10111
+look-up localnode=1110101, key=1100
+look-up localnode=0, key=10000111
+look-up localnode=11111110, key=10000111
+nodejoin id=1001000, ip=4ERBJY35X7NY, port=10111

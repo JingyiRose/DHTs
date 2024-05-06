@@ -18,7 +18,7 @@ def test_hard(start_filename, normal_ops_filename, rep_filename, m):
     dht = Chord6(m, is_cheating = False)
     controller = ControllerV2(start_filename, normal_ops_filename, dht, rep_filename, makenode_sleep=t)
     controller.execute()
-    time.sleep(60)
+    time.sleep(120)
     for id in dht.nodes:
         node = dht.nodes[id]
         print("Node={}\npos={}\nsuccessor={}\npredecessor={}\nstatus={}".format(node.node_id, node.pos_on_ring, node.successor, node.predecessor, node.active))
@@ -55,12 +55,12 @@ if __name__ == "__main__":
     # stable_start = True
     # l = 10
 
-    num_start_nodes = 9
-    num_start_keys = 10
-    num_ops = 112
-    p_nodejoin = 0
-    p_insertkey = 0
-    p_lookups = 1
+    num_start_nodes = 2
+    num_start_keys = 0
+    num_ops = 100
+    p_nodejoin = 0.01
+    p_insertkey = 0.99
+    p_lookups = 0
     start_filename = "init.txt"
     normal_ops_filename = "normal_ops.txt"
     rep_filename = "reply.txt"
