@@ -8,9 +8,10 @@ import pickle as pkl
 class KademliaDHT(DHT):
     """Simulates a Kademlia DHT network."""
 
-    def __init__(self):
-        super().__init__()
-        # self.nodes = {} inherited from DHT
+    def __init__(self, key_length=KEY_RANGE):
+        self.nodes = {}
+        self.channels = []
+        self.key_length = key_length
 
         
     def MakeNode(self, node_id, ip_address, port):
@@ -30,24 +31,32 @@ class KademliaDHT(DHT):
     # --------------- Centralized Operations for QuickStart  ---------------
             
     def centralized_make_node(self, node_id, ip_address, port):
-        """Centralized operation for a node to join the network."""
+        """Centralized operation for a node to join the network.
+        need to call construct_routing_tables() after all nodes are added."""
         
         node = KademliaNode(node_id, ip_address, port, self)
-        node.start()
         self.nodes[node_id] = node
+
+    
+    def construct_routing_tables(self):
         # instead of calling node.join(contact), we will construct the routing
-        # table for the new node with an omniscient view of the network
+        # table for the new nodes with an omniscient view of the network
         
         # populate all the kbuckets by picking a random key in the range
         # of each bucket and the network will tell the node the k existing
         # nodes in that range that is closest to the key
-        for i in range(KEY_RANGE):
-            kbucket = self.k_buckets[i]
-            rand_key = kbucket.get_random_key_in_range()
-            prefix = kbucket.get_prefix()
-            k_contacts = self.find_k_closest_w_prefix(prefix, rand_key)
-            kbucket.contacts = dict(map(lambda x: (x.node_id, x), k_contacts))
+        print(self.nodes.keys())
+        for _, node in self.nodes.items():
+            for i in range(self.key_length):
+                kbucket = node.k_buckets[i]
+                rand_key = kbucket.get_random_key_in_range()
+                prefix = kbucket.get_prefix()
+                k_contacts = self.find_k_closest_w_prefix(prefix, rand_key)
+                kbucket.update(k_contacts)
+            node.start()
+            # self.get_global_view()
         return
+    
     
     def centralized_insert_key(self, key, val):
         """Centralized operation to insert a key-value pair in network."""
@@ -57,13 +66,14 @@ class KademliaDHT(DHT):
 
     def find_closest_node(self, key):
         """Find the closest node to a key in the network."""
+        # distances = list(map(lambda x: (x,xor_base10(x,key)), self.nodes.keys()))
         return min(self.nodes.keys(), key = lambda x: xor_base10(x,key))
     
     def find_k_closest_w_prefix(self, prefix, rand_key):
         """Find the k closest nodes to a key with a certain prefix.
         """
         sorted_node_ids = sorted(self.nodes.keys(), key = lambda x: xor_base10(x,rand_key))
-        sorted_nodes_w_prefix = filter(lambda x: x[:len(prefix)] == prefix, sorted_node_ids)
+        sorted_nodes_w_prefix = filter(lambda x: pad(x,self.key_length)[:len(prefix)] == prefix, sorted_node_ids)
         sorted_contacts_w_prefix = map(lambda x: self.nodes[x].convert_to_contact(), sorted_nodes_w_prefix)
         return list(sorted_contacts_w_prefix)[:K]
 
@@ -75,7 +85,7 @@ class KademliaDHT(DHT):
             node = self.nodes[node_id]
             print(f'----------Node {node_id}----------')
             print(f'KBuckets:')
-            for i in range(KEY_RANGE):
+            for i in range(self.key_length):
                 kbucket = node.k_buckets[i]
                 if len(kbucket) != 0:
                     print(f'Bucket {i}:')

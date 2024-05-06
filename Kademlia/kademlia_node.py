@@ -24,11 +24,12 @@ class KademliaNode(Node):
         self.dht = dht
         self.in_queue = [] # FIFO queue of RPCs going into this node
         self.is_done = False
+        self.key_length = dht.key_length
 
         self.cache = {} # Cache <key, value> pairs
         self.k_buckets = {}
-        for i in range(KEY_RANGE):
-            self.k_buckets[i] = KBucket(node_id, i)
+        for i in range(self.key_length):
+            self.k_buckets[i] = KBucket(node_id, i, key_length=dht.key_length)
 
         # keep record of the unused replies we got so far 
         self.replies = {}  # req.id to reply dict
@@ -202,6 +203,7 @@ class KademliaNode(Node):
 
         # use dictionary to avoid duplicated node_ids
         k_closest_contacts = self.find_closed_contacts(key, K) # sorted by proximity to key
+        assert len(k_closest_contacts) != 0
         queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
@@ -214,8 +216,6 @@ class KademliaNode(Node):
             for _, contact in p_contacts.items():
                 req_id = find_value_rpc(self, contact, key)
                 req_ids.append(req_id)
-            # stop collecting replies when timeout is reached
-            # time.sleep(TIMEOUT)
             for req_id in req_ids:
                 if req_id in self.replies:
                     reply_contact = self.replies[req_id].sender
@@ -236,7 +236,6 @@ class KademliaNode(Node):
             # of the k nodes the initiator has heard of closest to the target, it picks
             # P that it has not yet queried and resends find_node RPC to them. 
             # note that the initiator can ignore nodes that don't respond quick enough.
-            assert len(k_closest_contacts) != 0
             k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
             p_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:P])
             new_distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
@@ -297,7 +296,7 @@ class KademliaNode(Node):
         for _, contact in k_nodes.items():
             self.add_contact(contact)
         # refreshes all k-buckets further away than its closest neighbor
-        for index in range(1, KEY_RANGE):
+        for index in range(1, self.key_length):
             # this populates its k-buckets and inserts itself into other nodes' k-buckets
             self.refresh_bucket(index)
 
@@ -324,6 +323,7 @@ class KademliaNode(Node):
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
         p_contacts = get_first(k_closest_contacts, P)
+        assert len(k_closest_contacts) != 0
         distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
 
         while True:
@@ -346,7 +346,6 @@ class KademliaNode(Node):
             # of the k nodes the initiator has heard of closest to the target, it picks
             # P that it has not yet queried and resends find_node RPC to them. 
             # note that the initiator can ignore nodes that don't respond quick enough.
-            assert len(k_closest_contacts) != 0
             k_closest_contacts = sort_contact_dict(k_closest_contacts, key)
             p_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:P])
             new_distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
@@ -366,7 +365,6 @@ class KademliaNode(Node):
             req_id = find_node_rpc(self, contact, key)
             req_ids.append(req_id)
 
-        # time.sleep(TIMEOUT)
         # need to collect all replies
         while len(req_ids) > 0:
             for req_id in req_ids:
@@ -436,7 +434,7 @@ class KademliaNode(Node):
     
     def find_k_bucket_index(self, key:str) -> int:
         """each k-bucket corresponds to the nodes with xor distance [2^i, 2^{i-1})
-        from the current node where the index i ranges from [0,KEY_RANGE-1].
+        from the current node where the index i ranges from [0,key_length-1].
         We find the range represented by the index i that they key should fall into
         
         Args:
@@ -466,14 +464,14 @@ class KademliaNode(Node):
         closest_contact = {}
         # search the buckets from closest to the key to farthest until we have num nodes
 
-        # Let bucket_string = int(self.node_id) ^ (2**i))% (2**KEY_RANGE)
+        # Let bucket_string = int(self.node_id) ^ (2**i))% (2**key_length)
         # This is the string by flipping 1 bit of node_id at the specified index 
         # corresponding to the bucket.
         # We can use this string to measure the distance of key from the bucket
-        sorted_bucket_indices = sorted(list(range(KEY_RANGE)), 
+        sorted_bucket_indices = sorted(list(range(self.key_length)), 
                         key=lambda i: int(target_key, KEY_BASE) ^ \
                             ((int(self.node_id, KEY_BASE) ^ \
-                            (2 ** i)) % (2 ** KEY_RANGE)))
+                            (2 ** i)) % (2 ** self.key_length)))
 
         num_node_needed = num
         while num_node_needed > 0 and len(sorted_bucket_indices) > 0:

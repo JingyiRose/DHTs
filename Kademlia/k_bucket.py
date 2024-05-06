@@ -10,27 +10,29 @@ class KBucket:
     """The bucket that stores k contacts in the subtree not containing the node ID.
     """
 
-    def __init__(self, node_id: str, index: int):
+    def __init__(self, node_id: str, index: int, key_length=KEY_RANGE):
         # more recently seen contacts are at the end of the list
         self.contacts = {} # map node_id -> Contact
         self.last_seen = {}
         self.node_id = node_id
         # index i represents nodes of distance [2^i, 2^{i-1}) from the current node
         self.index = index
+        self.key_length = key_length
 
     def get_random_key_in_range(self):
         """Get a random key whose distance with the current node is 
         in the range of distance that the k-bucket covers. returnt he key in binary.
         """
-        rand_dist = random.randint(2**(self.index), 2**(self.index+1)-1)
-        return f'{(int(self.node_id, KEY_BASE) + rand_dist) % (2**KEY_RANGE):b}'
+        prefix = self.get_prefix()
+        random_padd_bin_str = ''.join(random.choice(['0','1']) for _ in range(self.key_length-len(prefix)))
+        return prefix + random_padd_bin_str
     
     def get_prefix(self):
         """Get the prefix that all nodes in this k-bucket share. 
         This function is mostly for debugging purposes.
         """
-        # padded with 0 to a total length KEY_RANGE
-        bin_string = f'{int(self.node_id, KEY_BASE):0{KEY_RANGE}b}'
+        # padded with 0 to a total length key_length
+        bin_string = f'{int(self.node_id, KEY_BASE):0{self.key_length}b}'
         part1 = bin_string[:-self.index-1]
         part2 = flip(bin_string[-self.index-1])
         return part1 + part2
@@ -49,7 +51,11 @@ class KBucket:
         """
         return dict(list(sort_contact_dict(self.contacts, target_key).items())[:num])
 
-    
+    def update(self, contacts):
+        """Add a list of contacts"""
+        for contact in contacts:
+            self.add(contact)
+        
     def add(self, contact):
         """Add the contact to the tail of k-bucket and update last seen time.
 
@@ -80,20 +86,21 @@ class KBucket:
     
 if __name__ == "__main__":
     # test KBucket
-    node_id = "1010101"
-    index = 7
-    bucket = KBucket(node_id, index)
-    bucket.contacts = {"10011011": Contact("ip", "port", "10011011"), 
-                       "10001011": Contact("ip", "port", "10001011"),
-                       "10000000": Contact("ip", "port", "10000000")}
-    print(f'Key has length {KEY_RANGE}')
+    key_length = 7
+    node_id = "101001"
+    index = 5
+    bucket = KBucket(node_id, index, key_length=key_length)
+    # bucket.contacts = {"10011011": Contact("ip", "port", "10011011"), 
+    #                    "10001011": Contact("ip", "port", "10001011"),
+    #                    "10000000": Contact("ip", "port", "10000000")}
+    print(f'Key has length {bucket.key_length}')
     print(f'the node is {node_id}')
     print(f'index of the bucket is {index}')
     print(f'prefix of the bucket is {bucket.get_prefix()}')
     print(f'a random key in the range is {bucket.get_random_key_in_range()}')
-    print(bucket.sort_by_proximity("10111011",10).keys())
-    print(bucket.sort_by_proximity("10101011",10).keys())
-    print(bucket.sort_by_proximity("00000000",10).keys())
+    # print(bucket.sort_by_proximity("10111011",10).keys())
+    # print(bucket.sort_by_proximity("10101011",10).keys())
+    # print(bucket.sort_by_proximity("00000000",10).keys())
 
 
 
