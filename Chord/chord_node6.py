@@ -42,6 +42,16 @@ class ChordNode6(Node):
         self.put_queue = []
         self.release_lookups = True
         self.keys_queue = []
+
+        self.stabilize_period = 10
+        self.stabilize_clock = time.time()
+        self.fix_finger_period = 120
+        self.fix_finger_clock = time.time()
+        self.keys_request_period = 120
+        self.keys_request_clock = time.time()
+
+
+
         for i in range(self.num_identifier_bits):
             if contact_node == "None":
                 self.finger[(self.pos_on_ring + 2 ** i) % self.keyspace_size] = node_id
@@ -54,45 +64,57 @@ class ChordNode6(Node):
 
 
         def thread_function(node):
-            clock = time.time()
+            # clock = time.time()
             while not node.is_done:
-                if  self.stabilizer and time.time()-clock > 30:
-                    node.stabilize()
-                    # print("Node {} shortcut stabilize".format(self.node_id))
-                    node.fix_finger()
-                    # print("Node {} fixing finger".format(self.node_id))
-                    node.keys_request()
-                    clock = time.time()
-                if len(node.in_queue) > 0:
-                    pkg = node.in_queue.pop(0)
-                    if pkg.type.startswith("Init") and pkg.initiator == node.node_id:
-                        node.init_queue.append(pkg)
-                    elif pkg.type.startswith("Stab") and pkg.initiator == node.node_id:
-                        node.init_queue.append(pkg)
-                    elif pkg.type.startswith("PUT"):
-                        node.put_queue.append(pkg)
-                    elif pkg.type.startswith("Keys"):
-                        node.keys_queue.append(pkg)
-                    else:
-                        node.normal_queue.append(pkg)
+                if random.random() < 1/2:
+                    if  node.stabilizer and time.time()- node.stabilize_clock > node.stabilize_period:
+                        node.stabilize()
+                        node.stabilize_clock = time.time()
+                    if  node.stabilizer and time.time()- node.fix_finger_clock > node.fix_finger_period:
+                        node.fix_finger()
+                        node.fix_finger_period = time.time()
+                    if  node.stabilizer and time.time()- node.keys_request_clock > node.keys_request_period:
+                        node.keys_request()
+                        node.keys_request_period = time.time()
                 else:
-                    if node.active == False:
-                        if len(node.init_queue) > 0:
-                            pkg = node.init_queue.pop(0)
-                            node.process(pkg)
-                    elif node.active == True:
-                        if len(node.init_queue) > 0:
-                            pkg = node.init_queue.pop(0)
-                            self.process(pkg)
-                        elif len(node.keys_queue) > 0:
-                            pkg = node.keys_queue.pop(0)
-                            node.process(pkg)
-                        elif len(node.put_queue) > 0:
-                            pkg = node.put_queue.pop(0)
-                            node.process(pkg)
-                        elif len(node.normal_queue) > 0:
-                            pkg = node.normal_queue.pop(0)
-                            node.process(pkg)
+                
+                    # # print("Node {} shortcut stabilize".format(self.node_id))
+                    # node.fix_finger()
+                    # # print("Node {} fixing finger".format(self.node_id))
+                    # node.keys_request()
+                    # clock = time.time()
+
+
+                    if len(node.in_queue) > 0:
+                        pkg = node.in_queue.pop(0)
+                        if pkg.type.startswith("Init") and pkg.initiator == node.node_id:
+                            node.init_queue.append(pkg)
+                        elif pkg.type.startswith("Stab") and pkg.initiator == node.node_id:
+                            node.init_queue.append(pkg)
+                        elif pkg.type.startswith("PUT"):
+                            node.put_queue.append(pkg)
+                        elif pkg.type.startswith("Keys"):
+                            node.keys_queue.append(pkg)
+                        else:
+                            node.normal_queue.append(pkg)
+                    else:
+                        if node.active == False:
+                            if len(node.init_queue) > 0:
+                                pkg = node.init_queue.pop(0)
+                                node.process(pkg)
+                        elif node.active == True:
+                            if len(node.init_queue) > 0:
+                                pkg = node.init_queue.pop(0)
+                                self.process(pkg)
+                            elif len(node.keys_queue) > 0:
+                                pkg = node.keys_queue.pop(0)
+                                node.process(pkg)
+                            elif len(node.put_queue) > 0:
+                                pkg = node.put_queue.pop(0)
+                                node.process(pkg)
+                            elif len(node.normal_queue) > 0:
+                                pkg = node.normal_queue.pop(0)
+                                node.process(pkg)
                         
             return
 
@@ -209,7 +231,7 @@ class ChordNode6(Node):
 
     def stabilize(self):
         if self.successor:
-            print("Stabilizing Node {}".format(self.node_id))
+            # print("Stabilizing Node {}".format(self.node_id))
             content = "who is your predecessor node={} pos={}".format(self.node_id, self.pos_on_ring)
             req = StabRequest(self.node_id, self.successor, content, initiator = self.node_id)
             self.send(req)
@@ -217,7 +239,7 @@ class ChordNode6(Node):
     def process_client(self, pkg):
         if pkg.type == "GET":
             # print("Client request received at node {} id = {} content={}".format(self.node_id, pkg.id, pkg.content))
-            print(pkg.content)
+            # print(pkg.content)
             query_key = pkg.content.split("=")[-1][:-1]
             if query_key in self.keyvals:
                 content = "val={} hops={}".format(self.keyvals[query_key], 0)
@@ -243,7 +265,7 @@ class ChordNode6(Node):
         # if pkg.type == "PUTByNode":
         #     print("Node {} processing PUTByNode content={}".format(self.node_id, pkg.content))
         val = pkg.content.split("=")[-1]
-        key = pkg.content.split("=")[-2].split(" ")[0]
+        key = pkg.content.split("=")[-2].split(" ")[0][:-1]
         if is_in_between(self.dht.hash_fn(key), self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
             self.store(key, val)
             print("Node {} stores ({},{})".format(self.node_id, key, val))
@@ -355,7 +377,7 @@ class ChordNode6(Node):
             # keys = list(self.keyvals.keys())
             self.lock.acquire()
             for (key,val) in self.keyvals.items():
-                if is_in_between(requestor_pos, self.dht.hash_fn(int(key))-1, self.pos_on_ring, self.keyspace_size):
+                if not is_in_between(self.dht.hash_fn(int(key)), requestor_pos, self.pos_on_ring, self.keyspace_size):
                     keys_to_send.append(key)
                     val = self.keyvals[key]
                     content = "you should add key={} val={}".format(key, val)
