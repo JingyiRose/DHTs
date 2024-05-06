@@ -16,7 +16,7 @@ class KademliaDHT(DHT):
         
     def MakeNode(self, node_id, ip_address, port):
         contact = None
-        if len(self.nodes) > 0:
+        if len(self.nodes.items()) > 0:
             # assign an arbitrary node in the network as contact to the new node
             contact = self.nodes[random.choice(list(self.nodes.keys()))].convert_to_contact()
         
@@ -45,7 +45,8 @@ class KademliaDHT(DHT):
         # populate all the kbuckets by picking a random key in the range
         # of each bucket and the network will tell the node the k existing
         # nodes in that range that is closest to the key
-        print(self.nodes.keys())
+        if DEBUG:
+            print(self.nodes.keys())
         for _, node in self.nodes.items():
             for i in range(self.key_length):
                 kbucket = node.k_buckets[i]

@@ -79,7 +79,8 @@ class KademliaNode(Node):
     
     def has_finished(self):
         "Check if all threads have finished"
-        if self.processing_queue == [] and self.in_queue == []:
+        if self.processing_queue == [] and self.in_queue == [] \
+                and len(self.replies.items())==0:
             return True
         
     
@@ -97,23 +98,25 @@ class KademliaNode(Node):
                 print(f'Processing Client {pkg.type}: {pkg.content}......')
         if pkg.type == "GET":
             value = None
+            num_hops = None
             if pkg.key in self.cache:
                 value = self.cache[pkg.key]
+                num_hops = 0
             else:
                 # value can be None if the key is not found
-                value = self.lookup_keyval(pkg.key)
-            
-            #TODO is this necessary? or send value to client directly?
+                value, num_hops = self.lookup_keyval(pkg.key)
             rep = ClientReply(self, pkg.client, 
                             content = "Value is {}".format(value), 
                             proximity="local",  id = None)
             rep.send()
-            print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {value}......')
+            # print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {value}, num_hops = {num_hops}......')
+            pkg.client.record_reply(value, num_hops)
             return
 
         elif pkg.type == "PUT":
             self.store_pair_on_k_nodes(pkg.key, pkg.val)
-            print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {pkg.val}......')
+            if DEBUG:
+                print(f'Client Request Fulfilled {pkg.type}: key = {pkg.key}, value= {pkg.val}......')
             return
         elif pkg.type == "ClientReply":
             # do nothing
@@ -135,8 +138,10 @@ class KademliaNode(Node):
                 ping_reply(self, pkg)
         # Node Replies
         elif pkg.type == "REP":
-            # be careful pkg.id is not the same as pkg.req_id (for replies)!!
-            self.replies[pkg.req_id] = pkg
+            if message.type != MessageType.STORE_ACK:
+                # do not record reply if it is store_ack
+                # be careful pkg.id is not the same as pkg.req_id (for replies)!!
+                self.replies[pkg.req_id] = pkg
         return
 
         
@@ -153,7 +158,6 @@ class KademliaNode(Node):
         node has contact of. If the current node does not have contact of K nodes
         then return all nodes it knows of. 
         """
-        self.add_contact(sender)
         return self.find_closed_contacts(key, K)
 
 
@@ -162,8 +166,6 @@ class KademliaNode(Node):
         for the key, it just returns the stored value. Additionally, we return
         a success code to indicate whether the value is found or not.
         """
-        
-        self.add_contact(sender)
         if key in self.cache:
             # 1 is the success code for finding the value
             return (1,self.cache[key])
@@ -192,7 +194,7 @@ class KademliaNode(Node):
     def lookup_keyval(self, key):
         """lookup the value of the key in the DHT return None if not found
         """
-
+        num_hops = 0
         value = None
         # node_id = None
 
@@ -216,23 +218,25 @@ class KademliaNode(Node):
             for _, contact in p_contacts.items():
                 req_id = find_value_rpc(self, contact, key)
                 req_ids.append(req_id)
-            for req_id in req_ids:
-                if req_id in self.replies:
-                    reply_contact = self.replies[req_id].sender
-                    reply_info = decode(self.replies[req_id].content).info
-                    success, result = reply_info['success'], reply_info['result']
-                    # halts immediately when any node returns the value
-                    if success == 1:
-                        print("value found from find_value_rpc")
-                        value = result
-                        # node_id = self.replies[req_id].sender.node_id
-                        break
-                    else:
-                        k_contacts = result
-                        k_closest_contacts.update(k_contacts)
-                        queried_contacts.append(reply_contact.node_id)
-                        req_ids.remove(req_id)
-                        del self.replies[req_id]
+            # wait to hear replies from all nodes
+            while len(req_ids) > 0 and not value:
+                for req_id in req_ids:
+                    if req_id in self.replies:
+                        reply_contact = self.replies[req_id].sender
+                        reply_info = decode(self.replies[req_id].content).info
+                        success, result = reply_info['success'], reply_info['result']
+                        # halts immediately when any node returns the value
+                        if success == 1:
+                            if DEBUG: print("value found from find_value_rpc")
+                            value = result
+                            # node_id = self.replies[req_id].sender.node_id
+                            break
+                        else:
+                            k_contacts = result
+                            k_closest_contacts.update(k_contacts)
+                            queried_contacts.append(reply_contact.node_id)
+                            req_ids.remove(req_id)
+                            del self.replies[req_id]
             # of the k nodes the initiator has heard of closest to the target, it picks
             # P that it has not yet queried and resends find_node RPC to them. 
             # note that the initiator can ignore nodes that don't respond quick enough.
@@ -242,9 +246,12 @@ class KademliaNode(Node):
             if new_distance >= distance:
                 break
             distance = new_distance
+            num_hops += 1
 
         if not value:
             k_contacts = dict(list(filter(lambda x: x[0] not in queried_contacts, k_closest_contacts.items()))[:K])
+            if len(k_contacts.items()) > 0:
+                num_hops += 1
 
             req_ids = []
             for _, contact in k_contacts.items():
@@ -258,7 +265,7 @@ class KademliaNode(Node):
                         reply_info = decode(self.replies[req_id].content).info
                         success, result = reply_info['success'], reply_info['result']
                         if success == 1:
-                            print("value found from find_value_rpc")
+                            if DEBUG: print("value found from find_value_rpc")
                             value = result
                             break
                         req_ids.remove(req_id)
@@ -279,7 +286,7 @@ class KademliaNode(Node):
             #         break
 
         
-        return value
+        return value, num_hops
 
 
     # --------------- Core Node Functionalities ---------------

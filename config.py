@@ -13,5 +13,5 @@ KEY_BASE = 2 # the base we use to represent keys in strings
 
 K_COMMAND_FILE = "./test/k_commands.txt"
 K_KEYVAL_FILE = "./test/k_keyval.txt"
-DEBUG = True
+DEBUG = False
 K_DHT_STATE = "./test/k_dht_state.pkl"

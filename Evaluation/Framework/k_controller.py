@@ -61,7 +61,8 @@ class KController:
                 query_key = cmd.destination_key
                 client = Client(local_node, query_key, write_to = self.rep_filename)
                 client.make_query()
-                print("Client of node {} made a query key={}".format(cmd.local_node_id, query_key))
+                if DEBUG:
+                    print("Client of node {} made a query key={}".format(cmd.local_node_id, query_key))
                 self.clients.append(client)
 
 

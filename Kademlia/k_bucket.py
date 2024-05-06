@@ -81,7 +81,7 @@ class KBucket:
         return node_id in self.contacts
 
     def __len__(self):
-        return len(self.contacts)
+        return len(self.contacts.items())
     
     
 if __name__ == "__main__":

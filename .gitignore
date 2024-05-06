@@ -164,3 +164,10 @@ cython_debug/
 
 # VS code
 .vscode/
+
+# Specific Output files to Kademlia
+k_small_final_state.pkl
+k_small_init.txt
+k_small_init_state.pkl
+k_small_normal_ops.txt
+k_small_reply.txt

@@ -19,14 +19,16 @@ class Client:
     def make_query(self):
         req = GetRequest(self, self.local_node,
                             content = "Look-up key={}.".format(self.query_key))
-        # print("Client of node {} sent a GetRequest {}".format(self.local_node.node_id, 
-                # "Look-up key={}.".format(self.query_key)))
+        if DEBUG:
+            print("Client of node {} sent a GetRequest {}".format(self.local_node.node_id, 
+                "Look-up key={}.".format(self.query_key)))
         req.send()
     
     def insert_data(self):
         req = PutRequest(self, self.local_node, 
                          content = "Insert key={}, value={}.".format(*self.keyval))
-        print("Client of node {} sent a PutRequest {}".format(self.local_node.node_id, 
+        if DEBUG:
+            print("Client of node {} sent a PutRequest {}".format(self.local_node.node_id, 
                 "Insert key={}, value={}.".format(*self.keyval)))
         req.send()
 
@@ -47,5 +49,11 @@ class Client:
             f = open(self.write_to, 'a')
             f.write("Query {} key = {} = value {}\n".format(self.client_id, self.query_key, val))
             f.close()
+
+    def record_reply(self,value, num_hops):
+        if self.write_to:
+            with open(self.write_to, 'a') as f:
+                f.write("key={} value={} num_hops={}\n".format(self.query_key, value, num_hops))
+        
 
 

@@ -14,6 +14,11 @@ class MessageType(Enum):
     STORE = "STORE"
     FIND_NODE = "FIND_NODE"
     FIND_VALUE = "FIND_VALUE"
+    # reply message types
+    PING_ACK = "PING_ACK"
+    STORE_ACK = "STORE_ACK"
+    FIND_NODE_ACK = "FIND_NODE_ACK"
+    FIND_VALUE_ACK = "FIND_VALUE_ACK"
 
 
 class Message:
@@ -102,7 +107,8 @@ def find_value_rpc(node, dest: Contact, key, debug = DEBUG):
 def ping_reply(node, pkg: Package, debug = DEBUG):
     """a node replies to a ping request
     """
-    msg = Message(MessageType.PING, {})
+    node.add_contact(pkg.sender)
+    msg = Message(MessageType.PING_ACK, {})
     reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
 
@@ -112,13 +118,14 @@ def ping_reply(node, pkg: Package, debug = DEBUG):
 
 # Store request also needs to send an ack
 def store_reply(node, pkg: Package):
+    node.add_contact(pkg.sender)
     data = decode(pkg.content).info
     key, val = data["key"], data["value"]
     node.cache[key]= val
-    msg = Message(MessageType.STORE, {f"Stored <{key}, {val}> in node {node.node_id}"})
+    msg = Message(MessageType.STORE_ACK, {f"Stored <{key}, {val}> in node {node.node_id}"})
     reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                 encode(msg), proximity="p2p")
-
+    node.send(reply)
     debug_print(DEBUG, False, msg, reply)
     return
 
@@ -126,8 +133,9 @@ def store_reply(node, pkg: Package):
 def find_node_reply(node, pkg: Package, debug = DEBUG):
     """a node replies to a find_node request
     """
+    node.add_contact(pkg.sender)
     info = dict(result = node.find_node_handler(pkg.sender, decode(pkg.content).info["key"]))
-    msg = Message(MessageType.FIND_NODE, info)
+    msg = Message(MessageType.FIND_NODE_ACK, info)
     reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
     node.send(reply)
@@ -137,9 +145,10 @@ def find_node_reply(node, pkg: Package, debug = DEBUG):
 def find_value_reply(node, pkg: Package, debug = DEBUG):
     """a node replies to a find_value request
     """
+    node.add_contact(pkg.sender)
     success, result = node.find_value_handler(pkg.sender, decode(pkg.content).info["key"])
     info = dict(success = success, result = result)
-    msg = Message(MessageType.FIND_VALUE, info)
+    msg = Message(MessageType.FIND_VALUE_ACK, info)
     reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
                     encode(msg), proximity="p2p")
     node.send(reply)
