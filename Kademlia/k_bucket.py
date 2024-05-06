@@ -20,7 +20,7 @@ class KBucket:
 
     def get_random_key_in_range(self):
         """Get a random key whose distance with the current node is 
-        in the range of distance that the k-bucket covers.
+        in the range of distance that the k-bucket covers. returnt he key in binary.
         """
         rand_dist = random.randint(2**(self.index), 2**(self.index+1)-1)
         return f'{(int(self.node_id, KEY_BASE) + rand_dist) % (2**KEY_RANGE):b}'

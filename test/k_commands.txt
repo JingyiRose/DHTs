@@ -1,30 +1,60 @@
-nodejoin id=1011011, ip=3VYFCFNZMZQ0, port=11100
-nodejoin id=1111000, ip=UZWDL8LMDOTO, port=11110
-nodejoin id=1000101, ip=WMNYYOD36DGB, port=11110
-nodejoin id=10100000, ip=B8666HWQOI2Z, port=1011
-nodejoin id=1100001, ip=JPAGOH0MY1GA, port=10100
-nodejoin id=11100010, ip=LYHVUQ8I8JPM, port=10000
-nodejoin id=11000111, ip=PCFR4RE4VJUO, port=111
-nodejoin id=10110100, ip=AN4JS2T42T95, port=1010
-nodejoin id=1011000, ip=9117ENJBGFOM, port=1110
-nodejoin id=1011, ip=M7DQK530TEV3, port=1011
-insert localnode=1011011, key=11001101, val=100010001110011
-insert localnode=1011, key=101100, val=1111101110010000
-insert localnode=10100000, key=10011001, val=1010001101001101
-insert localnode=10110100, key=101011, val=10000101111
-insert localnode=10110100, key=0, val=1010000011110111
-look-up localnode=1011011, key=10011001
-look-up localnode=1011011, key=101100
-look-up localnode=10110100, key=10011001
-look-up localnode=11100010, key=10011001
-look-up localnode=1100001, key=0
-look-up localnode=10100000, key=101100
-look-up localnode=1100001, key=11001101
-look-up localnode=1011, key=0
-look-up localnode=1100001, key=10011001
-look-up localnode=11100010, key=101011
-look-up localnode=1111000, key=101011
-look-up localnode=1111000, key=0
-look-up localnode=1100001, key=101011
-look-up localnode=1100001, key=101011
-look-up localnode=1000101, key=101011
+nodejoin id=1011011, ip=S2T42T959117, port=11001
+nodejoin id=1111000, ip=ENJBGFOMM7DQ, port=11100
+nodejoin id=1000101, ip=K530TEV32R5I, port=11110
+nodejoin id=10100000, ip=HUWVXGY2UTNP, port=11101
+nodejoin id=1100001, ip=3LXT1PS7DLTI, port=11110
+nodejoin id=11100010, ip=JNIL6MQ5Y7LQ, port=10
+nodejoin id=11000111, ip=G6XIG1T6QGJ7, port=11011
+nodejoin id=10110100, ip=ZDY23948GA54, port=1011
+nodejoin id=1011000, ip=ESGN2F814JLW, port=10
+nodejoin id=1011, ip=AFQVCF9ULBWN, port=1110
+nodejoin id=11100001, ip=UH03DAFOGMNP, port=11
+nodejoin id=1111110, ip=CZCHGTBE6OQR, port=1000
+nodejoin id=101, ip=ZLKU500V3XN2, port=11010
+nodejoin id=110010, ip=15B7J2CLHE2E, port=11101
+nodejoin id=1100, ip=3GHBQ67ZO5AP, port=1
+nodejoin id=11000000, ip=UXGZFIA7EH1C, port=11110
+nodejoin id=10110001, ip=EMG9916BWUXS, port=10111
+nodejoin id=1110000, ip=18B2FBADB1RQ, port=1
+nodejoin id=11101, ip=8TBW2TCHZTRU, port=1011
+nodejoin id=10100010, ip=FWCN8H0VX2SH, port=10001
+insert localnode=1110000, key=11001010, val=1001011110111100
+insert localnode=10110100, key=11011010, val=111001100110000
+insert localnode=1011, key=1101010, val=10011001010011
+insert localnode=1100, key=10011000, val=1001010011001001
+insert localnode=1100, key=1100010, val=1001011101001111
+insert localnode=10110001, key=10011111, val=10011111111010
+insert localnode=1111000, key=1101110, val=1000011100011000
+insert localnode=110010, key=11011, val=111001000001001
+insert localnode=11000000, key=100100, val=101011011000
+insert localnode=101, key=11101101, val=100001000001001
+insert localnode=1111110, key=101011, val=110010100110111
+insert localnode=11000111, key=10101111, val=111111000110011
+insert localnode=10110100, key=1110111, val=1010110110101011
+insert localnode=1100001, key=10010, val=1000011101000000
+insert localnode=1011011, key=101100, val=101100101100011
+insert localnode=1111000, key=10000100, val=101011111011111
+insert localnode=1111000, key=1111011, val=101110100001110
+insert localnode=10100010, key=1000100, val=1000110101101101
+insert localnode=11100001, key=10110000, val=1101001111111011
+insert localnode=11101, key=11011010, val=1100010111000
+look-up localnode=1011, key=10011000
+look-up localnode=110010, key=11011010
+look-up localnode=1100, key=1111011
+look-up localnode=1011011, key=10010
+look-up localnode=101, key=101100
+look-up localnode=1111000, key=1101110
+look-up localnode=1111000, key=11011010
+look-up localnode=11100010, key=10010
+look-up localnode=1110000, key=11001010
+look-up localnode=11000000, key=10110000
+look-up localnode=1000101, key=11011010
+look-up localnode=11100010, key=1111011
+look-up localnode=10110100, key=10011000
+look-up localnode=1100001, key=11011010
+look-up localnode=11000111, key=101100
+look-up localnode=10110100, key=10110000
+look-up localnode=11000000, key=10010
+look-up localnode=10100010, key=11101101
+look-up localnode=1100001, key=1101110
+look-up localnode=110010, key=1110111

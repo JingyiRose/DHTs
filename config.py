@@ -15,3 +15,4 @@ TIMEOUT = 0.5 # number of seconds sleep time to wait for replies
 K_COMMAND_FILE = "./test/k_commands.txt"
 K_KEYVAL_FILE = "./test/k_keyval.txt"
 DEBUG = True
+K_DHT_STATE = "./test/k_dht_state.pkl"

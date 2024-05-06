@@ -35,6 +35,14 @@ class KademliaNode(Node):
         self.processing_queue = [] # FIFO queue of packages that this node has to process
 
 
+
+    def start(self):
+        """Start the threads for processing requests and replies"""
+        # clean up
+        self.in_queue = []
+        self.processing_queue = []
+        self.replies = {}
+
         # self.exit_event = threading.Event() TODO gracefully terminate
 
         # process nonblocking requests/replies
@@ -64,9 +72,15 @@ class KademliaNode(Node):
         # process_blocking_thr.daemon = True 
         process_blocking_thr.start()
 
-
-
-
+    def stop(self):
+        """Stop the threads for processing requests and replies"""
+        self.is_done = True
+    
+    def has_finished(self):
+        "Check if all threads have finished"
+        if self.processing_queue == [] and self.in_queue == []:
+            return True
+        
     
     def process(self, pkg):
         """Process the incoming package. Send replies to requests, 
@@ -162,8 +176,17 @@ class KademliaNode(Node):
         """locate the k closest nodes to the key and sends them a store RPC
         """
         k_nodes = self.lookup_k_nodes(key) # dict
+        req_ids = [] 
         for _, contact in k_nodes.items():
-            store_rpc(self, contact, key, val)
+            req_id = store_rpc(self, contact, key, val)
+            req_ids.append(req_id)
+        # wait for the store to be completed on one node
+        # if_reply = False
+        # while not if_reply:
+        #     for req_id in req_ids:
+        #         if req_id in self.replies:
+        #             del self.replies[req_id]
+        #             if_reply = True
 
     def lookup_keyval(self, key):
         """lookup the value of the key in the DHT return None if not found

@@ -24,10 +24,7 @@ class Controller:
     
     def execute(self):
         for cmd in self.cmds:
-            # use ClientInsertKey instead since this request is made by some client locally
-            # if cmd.type == "InsertKey":
-            #     key, val = cmd.key, cmd.val
-            #     self.dht.InsertKey(key, val)
+            
             print(f'Executing command: {cmd}')
 
             if cmd.type == "MakeNode":
@@ -54,7 +51,6 @@ class Controller:
                 client = Client(local_node, keyval = (key, val), write_to = self.rep_filename)
                 client.insert_data()
                 self.clients.append(client)
-
 
         # if cmd.type == "Finish":
         #     self.dht.clean_up()

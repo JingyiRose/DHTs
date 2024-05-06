@@ -110,13 +110,16 @@ def ping_reply(node, pkg: Package, debug = DEBUG):
     debug_print(debug, False, msg, reply)
     return
 
-# Store request does not need a reply
+# Store request also needs to send an ack
 def store_reply(node, pkg: Package):
     data = decode(pkg.content).info
     key, val = data["key"], data["value"]
     node.cache[key]= val
-    if DEBUG:
-        print(f"Stored <{key}, {val}> in node {node.node_id}")
+    msg = Message(MessageType.STORE, {f"Stored <{key}, {val}> in node {node.node_id}"})
+    reply = Reply(pkg.receiver, pkg.sender, pkg.id, 
+                encode(msg), proximity="p2p")
+
+    debug_print(DEBUG, False, msg, reply)
     return
 
 

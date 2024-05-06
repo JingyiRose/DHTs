@@ -10,7 +10,7 @@ class Channel:
     #    - reply to a request
     #    - for requests that dont require a reply, maybe send an ack?
 
-    def __init__(self, sender, receiver, latency_dist):
+    def __init__(self, sender: str, receiver: str, latency_dist):
         # sender and receiver is node object NOT ids
         self.sender = sender
         self.receiver = receiver

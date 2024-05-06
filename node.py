@@ -34,7 +34,7 @@ class Node:
 
     def send(self, pkg):
         # RPCs from peer to peer by this node sending a package (request, reply, etc) into a channel
-        receiver_id = pkg.receiver
+        receiver_id = pkg.receiver.node_id
         # receiver_id = pkg.receiver.node_id
         if receiver_id not in self.out_channels:
             self.open_channel(receiver_id)
@@ -53,6 +53,6 @@ class Node:
     def finish(self):
         self.is_done = True
 
-    def open_channel(self, destination):
+    def open_channel(self, destination: str):
         # destionation is id
         self.dht.MakeChannel(self.node_id, destination)
