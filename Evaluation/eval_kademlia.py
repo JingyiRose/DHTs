@@ -1,7 +1,5 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath('..'))
-
 from Framework.k_controller import *
 from Framework.test_k import *
 
