@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # eval_kademlia(folder_name, label)
 
     folder_name = "Evaluation3"
-    label = "p_nodejoin_002"
+    label = "p_nodejoin_01"
     eval_kademlia(folder_name, label)
 
     # folder_name = "Evaluation4"
