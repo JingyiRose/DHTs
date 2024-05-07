@@ -31,20 +31,20 @@ if __name__ == "__main__":
     # label = "p_insert_050"
     # eval_kademlia(folder_name, label)
 
-    # folder_name = "Evaluation3"
-    # label = "p_nodejoin_01"
-    # eval_kademlia(folder_name, label)
+    folder_name = "Evaluation3"
+    label = "p_nodejoin_01"
+    eval_kademlia(folder_name, label)
 
     # folder_name = "Evaluation4"
     # label = "b99"
     # eval_kademlia(folder_name, label)
 
-    folder_name = "Evaluation5"
-    label = "lookup_insert_b99"
-    eval_kademlia(folder_name, label)
+    # folder_name = "Evaluation5"
+    # label = "lookup_insert_b99"
+    # eval_kademlia(folder_name, label)
 
     # folder_name = "Evaluation6"
-    # label = "lookup_insert_nodejoin_b80"
+    # label = "lookup_insert_nodejoin_b99"
     # eval_kademlia(folder_name, label)
 
     
