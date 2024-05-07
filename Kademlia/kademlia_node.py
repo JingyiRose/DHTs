@@ -1,3 +1,4 @@
+from Kademlia.kademlia_dht import *
 from Kademlia.kademlia_protocol import *
 from env import *
 from node import *
@@ -25,6 +26,7 @@ class KademliaNode(Node):
         self.in_queue = [] # FIFO queue of RPCs going into this node
         self.is_done = False
         self.key_length = dht.key_length
+        self.contact = None
 
         self.cache = {} # Cache <key, value> pairs
         self.k_buckets = {}
@@ -297,6 +299,13 @@ class KademliaNode(Node):
             return
         # insert contact to appropriate k-bucket
         self.add_contact(contact)
+        self.contact = contact
+        if DEBUG:
+            num_contacts = 0
+            for i in range(self.key_length):
+                num_contacts += len(self.k_buckets[i])
+            if num_contacts == 0:
+                self.add_contact(contact)
         # perform node lookup for its own node id
         k_nodes = self.lookup_k_nodes(self.node_id)
         # add nodes to appropriate k-bucket
@@ -319,6 +328,7 @@ class KademliaNode(Node):
         
         k_closest_contacts = {}
         # if the current node is equal to the key just return itself and k-1 closest contacts
+        # this requires P>=2 to be useful if a node just joins and look up its own key
         if self.node_id == key:
             k_closest_contacts[self.node_id] = self.convert_to_contact()
             k_closest_contacts.update(self.find_closed_contacts(key, K-1)) # sorted by proximity to key
@@ -329,8 +339,12 @@ class KademliaNode(Node):
         queried_contacts = [] # node IDs that have already been queried
         # pick P nodes from its closest non-empty k-bucket and if that bucket
         # has fewer than P entries, take the P closest nodes it knows of
+        # need P>=2
         p_contacts = get_first(k_closest_contacts, P)
-        assert len(k_closest_contacts) != 0
+        try:
+            assert len(k_closest_contacts) != 0
+        except AssertionError as e:
+            print(e)
         distance = xor_base10(list(k_closest_contacts.items())[0][0], key)
 
         while True:
@@ -501,6 +515,16 @@ if __name__ == "__main__":
                         ((int(node_id, KEY_BASE) ^ \
                         (2 ** i)) % (2 ** KEY_RANGE)))
     assert sorted_bucket_indices == [6,5,4,3,2,0,1,7]
-
     sorted_prefixes = map(lambda i: KBucket(node_id, i).get_prefix(), sorted_bucket_indices)
-    print(list(sorted_prefixes))
+    # print(list(sorted_prefixes))
+
+    dht = KademliaDHT(key_length=6)
+    node = KademliaNode("101110", "ip","port", dht)
+    node2 = KademliaNode("1111", "ip","port", dht)
+    dht.nodes[node.node_id] = node
+    dht.nodes[node2.node_id] = node2
+    node.add_contact(Contact("ip", "port", "1111"))
+    node.add_contact(Contact("ip", "port", "1111"))
+    node.add_contact(node.convert_to_contact())
+    print(node.find_closed_contacts("001000",1))
+    print(dht.get_global_view())

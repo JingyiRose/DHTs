@@ -96,20 +96,20 @@ def small_test():
     num_start_nodes = 20
     num_start_keys = 20
     num_ops = 20
-    p_nodejoin = 0
-    p_insertkey = 0.5
-    p_lookups = 0.5
+    p_nodejoin = 0.5
+    p_insertkey = 0.25
+    p_lookups = 0.25
     start_filename = "k_small_init.txt"
     normal_ops_filename = "k_small_normal_ops.txt"
     rep_filename = "k_small_reply.txt"
     save_init_filename = "k_small_init_state.pkl"
     save_final_filename = "k_small_final_state.pkl"
     stable_start = True
-    key_length = 10
+    key_length = 6
 
-    make_commands = True
+    make_commands = False
     run_test = True
-    continue_from_init = False
+    continue_from_init = True
 
     if make_commands:
         maketest_v2(num_start_nodes, num_start_keys, num_ops,  p_nodejoin, p_insertkey, p_lookups, 

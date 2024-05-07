@@ -23,17 +23,17 @@ def eval_kademlia(folder_name, label, continue_from_init = False):
 
 
 if __name__ == "__main__":
-    folder_name = "Evaluation1"
-    label = "n20"
-    eval_kademlia(folder_name, label, continue_from_init=True)
+    # folder_name = "Evaluation1"
+    # label = "n20"
+    # eval_kademlia(folder_name, label, continue_from_init=True)
 
     # folder_name = "Evaluation2"
     # label = "p_insert_050"
     # eval_kademlia(folder_name, label)
 
     # folder_name = "Evaluation3"
-    # label = "p_nodejoin_01"
-    # eval_kademlia(folder_name, label)
+    # label = "p_nodejoin_02"
+    # eval_kademlia(folder_name, label, continue_from_init=True)
 
     # folder_name = "Evaluation4"
     # label = "b_80"
@@ -43,9 +43,9 @@ if __name__ == "__main__":
     # label = "lookup_insert_b80"
     # eval_kademlia(folder_name, label)
 
-    # folder_name = "Evaluation6"
-    # label = "lookup_insert_nodejoin_b80"
-    # eval_kademlia(folder_name, label)
+    folder_name = "Evaluation6"
+    label = "lookup_insert_nodejoin_b80"
+    eval_kademlia(folder_name, label, True)
 
     
 

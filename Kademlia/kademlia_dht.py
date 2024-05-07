@@ -96,7 +96,7 @@ class KademliaDHT(DHT):
     
     def write_state_to_file(self, filename):
         """Write the state of the network to a file."""
-        with open(filename,'wb') as f:
+        with open(filename,'wb+') as f:
             pkl.dump(self, f, protocol=pkl.HIGHEST_PROTOCOL)
     
     def all_nodes_finished(self):

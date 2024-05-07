@@ -72,13 +72,13 @@ class KBucket:
         Args:
             node_id (str): the node_id of the contact to be removed
         """
-        if node_id in self.contacts:
+        if node_id in self.contacts.keys():
             del self.contacts[node_id]
             del self.last_seen[node_id]
 
 
     def __contains__(self, node_id):
-        return node_id in self.contacts
+        return node_id in self.contacts.keys()
 
     def __len__(self):
         return len(self.contacts.items())
