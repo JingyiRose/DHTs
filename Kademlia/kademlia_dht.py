@@ -1,6 +1,7 @@
 """Implements the Kademlia Protocol RPCs
 """
-
+import sys,os
+sys.path.insert(1, os.path.abspath(''))
 from DHT import *
 from Kademlia.kademlia_node import *
 import pickle as pkl

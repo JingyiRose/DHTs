@@ -26,6 +26,9 @@ if __name__ == "__main__":
     # folder_name = "Evaluation1"
     # label = "n20"
     # eval_kademlia(folder_name, label, continue_from_init=True)
+    # folder_name = "Evaluation1"
+    # label = "n20"
+    # eval_kademlia(folder_name, label, continue_from_init=True)
 
     # folder_name = "Evaluation2"
     # label = "p_insert_050"
@@ -36,11 +39,11 @@ if __name__ == "__main__":
     # eval_kademlia(folder_name, label, continue_from_init=True)
 
     # folder_name = "Evaluation4"
-    # label = "b_80"
+    # label = "b99"
     # eval_kademlia(folder_name, label)
 
     # folder_name = "Evaluation5"
-    # label = "lookup_insert_b80"
+    # label = "lookup_insert_b99"
     # eval_kademlia(folder_name, label)
 
     folder_name = "Evaluation6"
