@@ -56,7 +56,6 @@ class KController:
             if cmd.type == "MakeNode":
                 id, ip, port = cmd.id, cmd.ip, cmd.port
                 self.dht.MakeNode(id, ip, port)
-                time.sleep(self.makenode_sleep)
 
             if cmd.type == "ClientLookUp":
                 local_node = self.dht.nodes[cmd.local_node_id]
