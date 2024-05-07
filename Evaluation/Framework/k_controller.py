@@ -1,7 +1,9 @@
-
-from Kademlia.kademlia_dht import KademliaDHT
+import sys, os
+sys.path.insert(1, os.path.abspath(''))
+# print(sys.path)
 from client import *
-from Framework.command_v2 import *
+from Kademlia.kademlia_dht import KademliaDHT
+from Evaluation.Framework.command_v2 import *
 import time
 
 class KController:
