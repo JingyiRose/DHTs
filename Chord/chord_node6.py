@@ -12,7 +12,7 @@ def is_in_between(x,l,r,m):
 
 
 class ChordNode6(Node):
-    def __init__(self, node_id, ip_address, port, contact_node, dht, pos, coldstart=False):
+    def __init__(self, node_id, ip_address, port, contact_node, dht, pos):
         super().__init__(node_id, ip_address, port, dht)
         self.keyvals = {}
         self.alive = True
@@ -28,19 +28,14 @@ class ChordNode6(Node):
         self.successor_pos = None
         self.predecessor = None
         self.predecessor_pos = None
-        self.stabilization_queue = []
         self.init_queue = []
-        self.is_stabilizing = True
         self.normal_queue = []
         self.active = (contact_node == "None")
-        self.waiting = False
-        self.coldstart = (contact_node == "None")
         self.stabilizer = not (contact_node == "None")
         self.lock = threading.Lock()
         self.clients = {}
         self.lookup_queue = []
         self.put_queue = []
-        self.release_lookups = True
         self.keys_queue = []
 
         self.stabilize_period = 10
@@ -64,7 +59,6 @@ class ChordNode6(Node):
 
 
         def thread_function(node):
-            # clock = time.time()
             while not node.is_done:
                 if random.random() < 1/2:
                     if  node.stabilizer and time.time()- node.stabilize_clock > node.stabilize_period:
@@ -77,14 +71,6 @@ class ChordNode6(Node):
                         node.keys_request()
                         node.keys_request_period = time.time()
                 else:
-                
-                    # # print("Node {} shortcut stabilize".format(self.node_id))
-                    # node.fix_finger()
-                    # # print("Node {} fixing finger".format(self.node_id))
-                    # node.keys_request()
-                    # clock = time.time()
-
-
                     if len(node.in_queue) > 0:
                         pkg = node.in_queue.pop(0)
                         if pkg.type.startswith("Init") and pkg.initiator == node.node_id:
@@ -122,10 +108,11 @@ class ChordNode6(Node):
         thr = threading.Thread(target=thread_function, args=(self,)) 
         thr.start()
 
-    def notify_client(self, client, content):
-        client.get(content)
+    
+
 
     def process(self, pkg):
+        # process incoming package; processing depends on the incoming package tpyes and functionalities
         if pkg.type.startswith("Init"):
             self.process_init(pkg)
         if pkg.type.startswith("Stab"):
@@ -149,6 +136,9 @@ class ChordNode6(Node):
         self.predecessor = predecessor_id
         self.predecessor_pos = predecessor_pos
 
+    def notify_client(self, client, content):
+        client.get(content)
+
     def find_next_node_id(self, x):
         # x could be anything in chord ring value (not even have to me mod 2^m)
         next_node_id = None
@@ -160,16 +150,10 @@ class ChordNode6(Node):
                     smallest_dist = new_dist
                     next_node_id = self.finger[y]
         if not next_node_id:
-            # print("no good node found")
-            # print(self.node_id)
-            # print(self.finger)
             next_node_id = self.successor
-        # else:
-        #     print("good node found")
         return next_node_id
     
     def fix_finger(self):
-        print("Node {} fixing finger".format(self.node_id))
         if self.is_finger_ready():
             for finger in self.finger:
                 if random.random() < 1:
@@ -188,26 +172,21 @@ class ChordNode6(Node):
     def store(self, key, val):
         self.lock.acquire()
         self.keyvals[key] = val
-        self.release_lookups = True
         self.lock.release()
 
     def initialize(self):
-        # find successor node
         if not self.successor:
             print("Initializing Node {}".format(self.node_id))
             content = "find successor={}".format(self.pos_on_ring)
             req = InitSuccessorRequest(self.node_id, self.contact_node, content, initiator = self.node_id)
             self.send(req)
-            # print("Node {} successor request sent to {}".format(self.node_id, self.contact_node))
         return
     
     def init_predecessor(self):
-        # ask successor who is his current predecessor. successor upon receiving change his predecessor to self
         content = "who is your predecessor"
         req = InitSuccessorRequest(self.node_id, self.successor, content, initiator = self.node_id)
         self.send(req)
     def init_fingers(self):
-        # print("Node {} request fingers from successor node {}".format(self.node_id, self.successor))
         for finger in self.finger:
             content = "find successor for finger={}".format(finger)
             req = InitSuccessorRequest(self.node_id, self.contact_node, content, initiator = self.node_id)
@@ -220,7 +199,6 @@ class ChordNode6(Node):
             next_node = self.predecessor # can be better
             content = "I might be your finger i={} node={} pos={} maxpos={}".format(i, self.node_id, self.pos_on_ring, maxpos)
             update = InitFingerUpdate(self.node_id, next_node, content, initiator = self.node_id) 
-            # print("Node {} sent finger update for i={} to {}".format(self.node_id, i, self.predecessor))
             self.send(update)
 
     def keys_request(self):
@@ -231,15 +209,12 @@ class ChordNode6(Node):
 
     def stabilize(self):
         if self.successor:
-            # print("Stabilizing Node {}".format(self.node_id))
             content = "who is your predecessor node={} pos={}".format(self.node_id, self.pos_on_ring)
             req = StabRequest(self.node_id, self.successor, content, initiator = self.node_id)
             self.send(req)
     
     def process_client(self, pkg):
         if pkg.type == "GET":
-            # print("Client request received at node {} id = {} content={}".format(self.node_id, pkg.id, pkg.content))
-            # print(pkg.content)
             query_key = pkg.content.split("=")[-1][:-1]
             if query_key in self.keyvals:
                 content = "val={} hops={}".format(self.keyvals[query_key], 0)
@@ -259,11 +234,9 @@ class ChordNode6(Node):
                     self.ongoing_requests[req.id] = req
                     self.send(req)
                     self.clients[client.client_id] = client
-                    # print("client req {} for key={} pos={} relayed to node {}".format(req.content, query_key, lookup_pos, next_node_id))
+                   
 
     def process_put(self, pkg):
-        # if pkg.type == "PUTByNode":
-        #     print("Node {} processing PUTByNode content={}".format(self.node_id, pkg.content))
         val = pkg.content.split("=")[-1]
         key = pkg.content.split("=")[-2].split(" ")[0][:-1]
         if is_in_between(self.dht.hash_fn(key), self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
@@ -274,31 +247,8 @@ class ChordNode6(Node):
             next_node_id = self.successor
             put = PutByNode(self.node_id, next_node_id, pkg.content)
             self.send(put)
-            # print("Node {} ships ({},{}) to {}".format(self.node_id, key, val, self.successor))
+         
 
-
-            
-
-            # print("Node {} receives an InsertKey".format(self.node_id))
-        #     print("Client request received at node {} id = {}".format(self.node_id, pkg.id))
-        #     query_key = int(pkg.content.split("=")[-1])
-        #     if query_key in self.keyvals:
-        #         content = "val={}".format(self.keyvals[query_key])
-        #         self.notify_client(pkg.client, content)
-
-        #         print("Client reply sent!")
-        #     else:
-        #         if not self.active:
-        #             self.normal_queue.append(pkg)
-        #         else:
-        #             self.req_to_fulfill[pkg.id] = pkg
-        #             lookup_pos = self.dht.hash_fn(int(query_key)) % self.keyspace_size
-        #             next_node_id = self.find_next_node_id(lookup_pos)
-        #             req = LookUpRequest(self.node_id, next_node_id , content = pkg.content, initiator=self.node_id, client_req_id = pkg.id, proximity = "local", id = None)
-        #             self.pkg_pointers[req.id] = pkg.id
-        #             self.ongoing_requests[req.id] = req
-        #             self.send(req)
-        #             print("client req for key={} pos={} relayed to node {}".format(query_key, lookup_pos, next_node_id))
 
     def process_lookup(self, pkg):
         if pkg.type == "LookUpRequest":
@@ -321,7 +271,7 @@ class ChordNode6(Node):
                 self.req_to_fulfill[pkg.id] = pkg
                 self.pkg_pointers[req.id] = pkg.id
                 self.send(req)
-                # print("client req for key={} pos={} not found at\nnode={} pos={} keyvals={}\nrequest relayed to node={}".format(query_key, query_pos, self.node_id, self.pos_on_ring, self.keyvals, next_node_id))
+               
 
         if pkg.type == "LookUpReply":
             prev_id = self.pkg_pointers[pkg.req_id]
@@ -349,18 +299,14 @@ class ChordNode6(Node):
                 if (self.successor == self.node_id) and (self.predecessor == self.node_id):
                     self.update_predecessor(tentative_predecessor, tentative_predecessor_pos)
                     self.update_successor(tentative_predecessor, tentative_predecessor_pos)
-                    # print("Node {} successor updated to {} pos={}".format(self.node_id, tentative_predecessor, tentative_predecessor_pos))
-                    # print("Node {} predecessor updated to {} pos={}".format(self.node_id, tentative_predecessor, tentative_predecessor_pos))
                 if is_in_between(tentative_predecessor_pos, self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
                     print("Node {} predecessor updated to {} pos={}".format(self.node_id, tentative_predecessor, tentative_predecessor_pos))
                     self.update_predecessor(tentative_predecessor, tentative_predecessor_pos)
                 
             
         if pkg.type == "StabReply":
-            # print("StabReply Node {} from {} content={}".format(self.node_id, pkg.sender, pkg.content))
             reply_node_pos = int(pkg.content.split("=")[-1])
             reply_node = pkg.content.split("=")[-2].split(" ")[0]
-            # print(pkg.content)
             if reply_node != self.node_id:
                 if is_in_between(reply_node_pos, self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
                     self.update_predecessor(reply_node, reply_node_pos)
@@ -374,7 +320,6 @@ class ChordNode6(Node):
         if pkg.type == "KeysRequest":
             requestor_pos = int(pkg.content.split("=")[-1])
             keys_to_send = []
-            # keys = list(self.keyvals.keys())
             self.lock.acquire()
             for (key,val) in self.keyvals.items():
                 if not is_in_between(self.dht.hash_fn(int(key)), requestor_pos, self.pos_on_ring, self.keyspace_size):
@@ -423,9 +368,6 @@ class ChordNode6(Node):
                 else:
                     finger_pos = self.dht.hash_fn(self.finger[(self.pos_on_ring + 2**i) % self.keyspace_size]) % self.keyspace_size
                     if is_in_between(node_pos, self.pos_on_ring + 2**i-1, finger_pos, self.keyspace_size):
-                        # print("Finger i={} of node={} pos={} originally is node={} pos={} updated node={} pos={} and forwarded to {} at pos={}".format(i, self.node_id, self.pos_on_ring, 
-                        #                                                                                                  self.finger[(self.pos_on_ring + 2**i) % self.keyspace_size], finger_pos,
-                        #                                                                                                  node_id, node_pos, self.predecessor, self.predecessor_pos))
                         self.finger[(self.pos_on_ring + 2**i) % self.keyspace_size] = node_id
                         next_node = self.predecessor # can be better
                         update = InitFingerUpdate(self.node_id, next_node, pkg.content, initiator = self.node_id) 
@@ -436,13 +378,10 @@ class ChordNode6(Node):
         if pkg.type == "InitSuccessorRequest":
             if pkg.content.startswith("find successor="):
                 pos = int(pkg.content.split("=")[-1])
-                # print("ABOUT TO BE ERROR: {} {} {} {} {} {}".format(pos, self.predecessor_pos, self.pos_on_ring, self.node_id, pkg.initiator, self.active))
                 if not self.active:
                     print("CIRCULATING")
                     self.normal_queue.append(pkg)
                 elif is_in_between(pos, self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
-                    # print("Successor for {} pos={} found at node={} pos={} with prec={} pos={}"
-                    #       .format(pkg.initiator, pos, self.node_id, self.pos_on_ring, self.predecessor, self.predecessor_pos))
                     content = "successor={} pos={} predecessor={} pos={}".format(self.node_id, self.pos_on_ring, self.predecessor, self.predecessor_pos)
                     rep = InitSuccessorReply(self.node_id, pkg.sender, pkg.id, content, initiator=pkg.initiator)
                     self.send(rep)
@@ -509,7 +448,6 @@ class ChordNode6(Node):
         if pkg.type == "FingerRequest":
             pos = int(pkg.content.split("=")[-1])
             if is_in_between(pos, self.predecessor_pos, self.pos_on_ring, self.keyspace_size):
-                # print("Node {} fixing finger {} to {} with pos={} predpos={}".format(pkg.initiator, pos, self.pos_on_ring, self.predecessor_pos))
                 content = "finger={} node={}".format(pos, self.node_id)
                 rep = FingerReply(self.node_id, pkg.sender, pkg.id, content, pkg.initiator)
                 self.send(rep)
@@ -532,7 +470,5 @@ class ChordNode6(Node):
                 prev_req = self.req_to_fulfill[prev_id]
                 rep = FingerReply(self.node_id, prev_req.sender, prev_req.id, pkg.content, initiator=pkg.initiator)
                 self.send(rep)
-
-
 
 

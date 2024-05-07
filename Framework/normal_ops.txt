@@ -1,5 +1,0 @@
-look-up localnode=10, key=10010100
-insert localnode=1111001, key=1011011, val=101000000011110
-insert localnode=1111001, key=101000, val=1001000111010101
-insert localnode=11111100, key=11100001, val=11010000001
-insert localnode=11001110, key=100101, val=1010100111

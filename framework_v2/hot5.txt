@@ -1,5 +1,0 @@
-nodejoin id=6HGU956B, ip=PE9EVFN2B5U0, port=03883, contact_node=M97XGEV7
-nodejoin id=2G9R4K7R, ip=KGZ8SIWSSDLQ, port=78016, contact_node=89ZFTWKZ
-nodejoin id=43GHIB2Z, ip=28O40C104095, port=43680, contact_node=0M1NW3HP
-nodejoin id=52VQ9CKM, ip=EJO7QA29L47V, port=12658, contact_node=ME9TFCIL
-nodejoin id=EEIGSKPB, ip=UT1IFQWB5DL2, port=72779, contact_node=2TQXF9AT

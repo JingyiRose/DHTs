@@ -1,11 +1,10 @@
 from DHT import *
-from Chord.chord_node import *
 import math
 from Chord.chord_node6 import *
 
 class Chord6(DHT):
 
-    def __init__(self, m, hash_fn = None, is_cheating = False):
+    def __init__(self, m, hash_fn = None):
         super().__init__()
         if hash_fn == None:
             self.hash_fn = lambda x: int(str(x),2)
@@ -16,8 +15,7 @@ class Chord6(DHT):
         self.node_ids = []
         self.cold_keyvals = []
         
-        # this is solely for the purpose of easing into imlementations where "cheating" is allowed
-        self.is_cheating = is_cheating
+        
         if self.is_cheating:
             self.keyvals = []
         
@@ -49,16 +47,10 @@ class Chord6(DHT):
         return closest_node_id
             
 
-    # def InsertKey(self, key, val):
-    #     successor_node_id = self.find_successor_node(self.hash_fn(int(key)), None)
-    #     self.nodes[successor_node_id].store(int(key), val)
-    #     print("Key ({},{}) added pos={} at node={}".format(key,val, self.hash_fn(int(key)) % self.keyspace_size, successor_node_id))
-
     def InsertKey(self, key, val):
-
         self.cold_keyvals.append((key, val))
          
-        # print("Key ({},{}) added cold".format(key,val))
+
 
 
     def make_finger(self, pos):
@@ -80,7 +72,7 @@ class Chord6(DHT):
 
         self.nodes[node_id] = node
         self.node_ids.append(node_id)
-        # print("Node {} made & pos = {} & active = {}".format(node_id, pos, node.active))
+
         if not contact_node == "None":
             self.MakeChannel(node_id, contact_node)
             node.initialize() 
@@ -90,8 +82,7 @@ class Chord6(DHT):
         for (key,val) in self.cold_keyvals:
             successor_node_id = self.find_successor_node(self.hash_fn(int(key)), None)
             self.nodes[successor_node_id].store(key, val)
-            # print("Key ({},{}) added pos={} at node={} pos={}".format(key,val, self.hash_fn(int(key)) % self.keyspace_size, successor_node_id, self.hash_fn(successor_node_id)))
-        pass
+
     
     def stabilize_cold_files(self):
         print("Stabilizing cold nodes")

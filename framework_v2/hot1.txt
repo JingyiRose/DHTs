@@ -1,1 +1,0 @@
-nodejoin id=97XGEV7U, ip=4B3QV5ZT68VN, port=14282, contact_node=DMF9YK0X

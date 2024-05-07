@@ -51,13 +51,6 @@ class ClientLookUp(Command):
     def __str__(self) -> str:
         return "ClientLookUp(localnode={}, key={})".format(self.local_node_id, self.destination_key)
     
-# class Finish(Command):
-#     def __init__(self):
-#         super().__init__()
-#         self.type = "Finish"
-    
-#     def __str__(self) -> str:
-#         return "Finish()"
 
 def parse_commands(commandfile):
     commands = []
@@ -75,8 +68,6 @@ def parse_commands(commandfile):
             localnode_id = cmd_split[1].split("=")[-1][:-1]
             key = cmd_split[2].split("=")[-1][:-1]
             val = cmd_split[3].split("=")[-1][:-1]
-            # print("|{}|{}|".format(key,val))
-            # commands.append(InsertKey(key,val))
             commands.append(ClientInsertKey(localnode_id, key,val))
         if cmd_split[0] == "look-up":
             localnode_id = cmd_split[1].split("=")[-1][:-1]
@@ -92,11 +83,6 @@ def execute(commands, dht):
 
 
 if __name__ == '__main__':
-    # commandfile = 'command_small.txt'
-    # commands = parse_commands(commandfile)
-    # for cmd in commands:
-    #     print(cmd)
-    
     commandfile = K_COMMAND_FILE
     commands = parse_commands(commandfile)
     for cmd in commands:
